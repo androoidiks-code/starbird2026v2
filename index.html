@@ -9,11 +9,16 @@
         :root { --yellow: #fcd34d; --blue: #3b82f6; --sky: #0ea5e9; --red: #f43f5e; --dark: #020617; }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; overflow: hidden; touch-action: manipulation; user-select: none; }
         
-        .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 10px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 5px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
         .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Плашка прогресса до вывода */
+        .progress-container { background: #1e293b; border-radius: 10px; height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #334155; position: relative; }
+        #progress-bar { background: var(--blue); width: 0%; height: 100%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--blue); }
+        .progress-text { font-size: 9px; color: white; position: absolute; width: 100%; top: 0; left: 0; line-height: 12px; font-weight: bold; }
 
         #scene { position: relative; width: 100%; height: 280px; background: linear-gradient(180deg, #0ea5e9 0%, #38bdf8 100%); border-radius: 24px; overflow: hidden; margin-bottom: 15px; border: 4px solid #1e293b; box-shadow: inset 0 0 50px rgba(0,0,0,0.2); transition: transform 0.1s; }
         #bird-wrap { position: absolute; left: 50px; top: 50%; transform: translateY(-50%); z-index: 10; transition: top 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -23,8 +28,8 @@
         #multiplier { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 18px; font-weight: bold; color: var(--yellow); border: 1px solid var(--yellow); display: none; z-index: 20; }
         #gain-float { position: absolute; right: 20px; top: 20px; color: var(--yellow); font-weight: bold; font-size: 20px; display: none; z-index: 25; }
 
-        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 14px; border: none; border-radius: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.1s; border-bottom: 5px solid rgba(0,0,0,0.3); font-size: 11px; text-transform: uppercase; }
+        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn { padding: 12px; border: none; border-radius: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.1s; border-bottom: 5px solid rgba(0,0,0,0.3); font-size: 11px; text-transform: uppercase; }
         .btn:active { transform: translateY(3px); border-bottom: none; }
         
         .btn-free { background: #8b5cf6; grid-column: span 2; font-size: 14px; }
@@ -47,8 +52,12 @@
 
     <div class="header-panel">
         <div class="stats-grid">
-            <div class="stat-box"><div class="label">Твой Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
+            <div class="stat-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
             <div class="stat-box"><div class="label">В полете</div><div class="val" style="color:white"><span id="win">0</span> ⭐</div></div>
+        </div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+            <div class="progress-text">ДО ВЫВОДА: <span id="prog-val">0</span> / 1000 ⭐</div>
         </div>
     </div>
 
@@ -79,23 +88,30 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const API = "http://85.198.96.191:8080"; // ЗАМЕНИ НА СВОЙ IP!
+        const API = "http://85.198.96.191:8080"; // Твой IP
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
 
         async function sync() {
             try {
-                const res = await fetch(`${API}/get_user?user_id=${userId}`);
+                const res = await fetch(`${API}/get_user?user_id=${userId}`, { cache: "no-store" });
                 const d = await res.json();
                 balance = d.balance;
-                document.getElementById('bal').innerText = balance;
-            } catch (e) { console.error("Sync error"); }
+                updateUI();
+            } catch (e) { console.error("Sync failed"); }
+        }
+
+        function updateUI() {
+            document.getElementById('bal').innerText = balance;
+            let prog = Math.min(100, (balance / 1000) * 100);
+            document.getElementById('progress-bar').style.width = prog + '%';
+            document.getElementById('prog-val').innerText = balance;
         }
 
         function fly(cost, type) {
             if (cost > balance && type !== 'free') {
-                tg.showConfirm(`Недостаточно звезд! Перейти в бот для пополнения?`, (ok) => { if(ok) tg.close(); });
+                tg.showConfirm(`Недостаточно звезд! В боте ${balance}. Перейти к пополнению?`, (ok) => { if(ok) tg.close(); });
                 return;
             }
             start(cost, type);
@@ -134,11 +150,10 @@
             isGaming = true; seconds = 0; flightWin = 0;
             if (type !== 'free') balance -= cost;
             
-            document.getElementById('bal').innerText = balance;
+            updateUI();
             document.getElementById('controls').style.display = 'none';
             document.getElementById('takeBtn').style.display = 'block';
             document.getElementById('multiplier').style.display = 'block';
-            document.getElementById('multiplier').innerText = "x1.00";
 
             let m = 1.0;
             window.timer = setInterval(() => {
@@ -155,7 +170,6 @@
                     m += 0.15;
                     let val = getStarValue(seconds, type);
                     flightWin += val;
-                    
                     document.getElementById('win').innerText = flightWin;
                     document.getElementById('multiplier').innerText = `x${m.toFixed(2)}`;
                     
@@ -179,18 +193,12 @@
 
         async function end(win) {
             isGaming = false;
-            const scene = document.getElementById('scene');
-            
             if(!win) {
                 flightWin = 0;
-                scene.style.transform = "rotate(5deg) scale(1.1)";
-                setTimeout(() => scene.style.transform = "rotate(0) scale(1)", 200);
-                
                 const b = document.createElement('div');
                 b.className = 'boom'; b.innerText = '💥';
                 b.style.left = '50px'; b.style.top = document.getElementById('bird-wrap').style.top;
-                scene.appendChild(b);
-                
+                document.getElementById('scene').appendChild(b);
                 document.getElementById('snd_crash').play();
                 tg.HapticFeedback.notificationOccurred('error');
                 setTimeout(() => b.remove(), 500);
@@ -202,14 +210,18 @@
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
 
-            await fetch(`${API}/update_balance`, {
+            // ЖЕСТКАЯ СИНХРОНИЗАЦИЯ
+            const data = JSON.stringify({user_id: userId, balance: balance});
+            fetch(`${API}/update_balance`, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: userId, balance: balance})
+                body: data
             });
-            
+
             document.getElementById('win').innerText = 0;
-            sync();
+            updateUI();
+            setTimeout(sync, 1000); // Доп. проверка через секунду
         }
 
         function spawnStar() {
@@ -235,7 +247,6 @@
             }
         }
 
-        // CSS для облаков, который забыли в прошлом коде
         const style = document.createElement('style');
         style.innerHTML = `@keyframes move { from { right: -100px; } to { right: 110%; } }`;
         document.head.appendChild(style);
