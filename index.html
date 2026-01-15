@@ -170,13 +170,16 @@
             end(true);
         }
 
-        async function end(win) {
+       async function end(win) {
             isGaming = false;
+            
+            // Логика визуальных эффектов (взрыв или успех)
             if(!win) {
                 flightWin = 0;
                 const b = document.createElement('div');
                 b.className = 'boom'; b.innerText = '💥';
-                b.style.left = '50px'; b.style.top = document.getElementById('bird-wrap').style.top;
+                b.style.left = '50px'; 
+                b.style.top = document.getElementById('bird-wrap').style.top;
                 document.getElementById('scene').appendChild(b);
                 document.getElementById('snd_crash').play();
                 tg.HapticFeedback.notificationOccurred('error');
@@ -185,11 +188,45 @@
                 tg.HapticFeedback.notificationOccurred('success');
             }
 
+            // Переключение интерфейса обратно на кнопки
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
             document.getElementById('win').innerText = 0;
+            
+            // 1. Сначала обновляем баланс на экране игрока
+            updateUI();
+            
+            // 2. ОТПРАВЛЯЕМ данные на сервер
+            const dataToSend = {
+                user_id: userId.toString(), 
+                balance: balance
+            };
 
+            console.log("Отправка на сервер:", dataToSend);
+
+            fetch(`${API}/update_balance`, {
+                method: 'POST',
+                body: JSON.stringify(dataToSend),
+                headers: {'Content-Type': 'application/json'},
+                keepalive: true 
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("Ответ сервера:", data);
+                // Показываем большую кнопку Telegram "СОХРАНЕНО" для уверенности
+                tg.MainButton.setText("✅ БАЛАНС СОХРАНЕН").show();
+                setTimeout(() => tg.MainButton.hide(), 2000);
+            })
+            .catch(err => {
+                console.error("Критическая ошибка сети:", err);
+                // Запасной вариант: сохраняем в память телефона, если сервер лег
+                localStorage.setItem('backup_bal', balance);
+            });
+            
+            // Финальная синхронизация через 1 секунду для проверки
+            setTimeout(sync, 1000);
+        }
             // ФИКС: Сначала обновляем UI, потом шлем на сервер и ЖДЕМ
             updateUI();
             
