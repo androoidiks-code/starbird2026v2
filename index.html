@@ -15,7 +15,6 @@
         .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Плашка прогресса до вывода */
         .progress-container { background: #1e293b; border-radius: 10px; height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #334155; position: relative; }
         #progress-bar { background: var(--blue); width: 0%; height: 100%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--blue); }
         .progress-text { font-size: 9px; color: white; position: absolute; width: 100%; top: 0; left: 0; line-height: 12px; font-weight: bold; }
@@ -89,16 +88,18 @@
         tg.expand();
 
         const API = "http://85.198.96.191:8080"; // Твой IP
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
 
         async function sync() {
             try {
-                const res = await fetch(`${API}/get_user?user_id=${userId}`, { cache: "no-store" });
+                const res = await fetch(`${API}/get_user?user_id=${userId}`);
                 const d = await res.json();
-                balance = d.balance;
-                updateUI();
+                if(d.balance !== undefined) {
+                    balance = parseInt(d.balance);
+                    updateUI();
+                }
             } catch (e) { console.error("Sync failed"); }
         }
 
@@ -111,7 +112,7 @@
 
         function fly(cost, type) {
             if (cost > balance && type !== 'free') {
-                tg.showConfirm(`Недостаточно звезд! В боте ${balance}. Перейти к пополнению?`, (ok) => { if(ok) tg.close(); });
+                tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
             start(cost, type);
@@ -121,28 +122,12 @@
             const r = Math.random() * 100;
             if (type === 'free') {
                 if (sec < 2) return r < 75 ? 1 : 2;
-                if (sec < 3) return r < 60 ? 3 : (r < 80 ? 4 : 5);
-                if (sec < 4) return r < 70 ? 2 : 10;
-                return r < 24 ? 25 : (r < 25 ? 50 : 5);
+                if (sec < 3) return r < 60 ? 3 : 5;
+                return 5;
             }
-            if (type === 'spin') {
-                if (sec < 2) return r < 75 ? 8 : 10;
-                if (sec < 3) return r < 60 ? 5 : (r < 80 ? 11 : 10);
-                if (sec < 4) return r < 70 ? 9 : 15;
-                return r < 24 ? 25 : (r < 25 ? 100 : 10);
-            }
-            if (type === 'super') {
-                if (sec < 2) return r < 75 ? 10 : 15;
-                if (sec < 3) return r < 60 ? 11 : (r < 80 ? 25 : 40);
-                if (sec < 4) return r < 70 ? 18 : 30;
-                return r < 24 ? 100 : (r < 25 ? 200 : 15);
-            }
-            if (type === 'turbo') {
-                if (sec < 2) return r < 75 ? 20 : 35;
-                if (sec < 3) return r < 60 ? 50 : (r < 80 ? 60 : 55);
-                if (sec < 4) return r < 70 ? 25 : 50;
-                return r < 24 ? 300 : (r < 25 ? 1000 : 60);
-            }
+            if (type === 'spin') return Math.floor(Math.random() * 10) + 5;
+            if (type === 'super') return Math.floor(Math.random() * 20) + 10;
+            if (type === 'turbo') return Math.floor(Math.random() * 50) + 20;
             return 1;
         }
 
@@ -158,11 +143,7 @@
             let m = 1.0;
             window.timer = setInterval(() => {
                 seconds += 0.5;
-                let crashChance = 0.05;
-                if (seconds >= 1.5) crashChance = 0.20;
-                if (seconds >= 3.0) crashChance = 0.50;
-                if (seconds >= 4.0) crashChance = 0.89;
-
+                let crashChance = seconds * 0.15;
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
                     end(false);
@@ -172,11 +153,9 @@
                     flightWin += val;
                     document.getElementById('win').innerText = flightWin;
                     document.getElementById('multiplier').innerText = `x${m.toFixed(2)}`;
-                    
                     const gf = document.getElementById('gain-float');
                     gf.innerText = `+${val}`; gf.style.display = 'block';
                     setTimeout(() => gf.style.display = 'none', 400);
-
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
                     spawnStar();
                     document.getElementById('snd_pop').play();
@@ -209,19 +188,21 @@
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
-
-            // ЖЕСТКАЯ СИНХРОНИЗАЦИЯ
-            const data = JSON.stringify({user_id: userId, balance: balance});
-            fetch(`${API}/update_balance`, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {'Content-Type': 'application/json'},
-                body: data
-            });
-
             document.getElementById('win').innerText = 0;
+
+            // ФИКС: Сначала обновляем UI, потом шлем на сервер и ЖДЕМ
             updateUI();
-            setTimeout(sync, 1000); // Доп. проверка через секунду
+            
+            try {
+                await fetch(`${API}/update_balance`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId.toString(), balance: balance})
+                });
+                console.log("Balance saved!");
+            } catch (e) { console.error("Save error"); }
+            
+            sync(); // Финальный подсос данных
         }
 
         function spawnStar() {
