@@ -87,14 +87,14 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const API = "https://cors-anywhere.herokuapp.com/http://85.198.96.191:8080";// Твой IP
+        const API = "http://85.198.96.191:8080"; // Твой IP
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
 
         async function sync() {
             try {
-                const res = await fetch(`${API}/get_user?user_id=${userId}`);
+                const res = await fetch(`${API}/get_user?user_id=${userId.toString()}&t=${Date.now()}`);
                 const d = await res.json();
                 if(d.balance !== undefined) {
                     balance = parseInt(d.balance);
@@ -170,16 +170,16 @@
             end(true);
         }
 
-       async function end(win) {
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ END - ВСЯ ЛОГИКА ТУТ
+        async function end(win) {
             isGaming = false;
             
-            // Логика визуальных эффектов (взрыв или успех)
+            // Сохраняем твой визуал взрыва
             if(!win) {
                 flightWin = 0;
                 const b = document.createElement('div');
                 b.className = 'boom'; b.innerText = '💥';
-                b.style.left = '50px'; 
-                b.style.top = document.getElementById('bird-wrap').style.top;
+                b.style.left = '50px'; b.style.top = document.getElementById('bird-wrap').style.top;
                 document.getElementById('scene').appendChild(b);
                 document.getElementById('snd_crash').play();
                 tg.HapticFeedback.notificationOccurred('error');
@@ -188,58 +188,38 @@
                 tg.HapticFeedback.notificationOccurred('success');
             }
 
-            // Переключение интерфейса обратно на кнопки
+            // Возвращаем интерфейс
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
             document.getElementById('win').innerText = 0;
-            
-            // 1. Сначала обновляем баланс на экране игрока
+
+            // 1. Обновляем UI сразу
             updateUI();
             
-            // 2. ОТПРАВЛЯЕМ данные на сервер
-            const dataToSend = {
-                user_id: userId.toString(), 
+            // 2. Отправляем на сервер (исправленный формат)
+            const payload = {
+                user_id: userId.toString().trim(),
                 balance: balance
             };
 
-            console.log("Отправка на сервер:", dataToSend);
-
-            fetch(`${API}/update_balance`, {
-                method: 'POST',
-                body: JSON.stringify(dataToSend),
-                headers: {'Content-Type': 'application/json'},
-                keepalive: true 
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("Ответ сервера:", data);
-                // Показываем большую кнопку Telegram "СОХРАНЕНО" для уверенности
-                tg.MainButton.setText("✅ БАЛАНС СОХРАНЕН").show();
-                setTimeout(() => tg.MainButton.hide(), 2000);
-            })
-            .catch(err => {
-                console.error("Критическая ошибка сети:", err);
-                // Запасной вариант: сохраняем в память телефона, если сервер лег
-                localStorage.setItem('backup_bal', balance);
-            });
-            
-            // Финальная синхронизация через 1 секунду для проверки
-            setTimeout(sync, 1000);
-        }
-            // ФИКС: Сначала обновляем UI, потом шлем на сервер и ЖДЕМ
-            updateUI();
-            
             try {
                 await fetch(`${API}/update_balance`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({user_id: userId.toString(), balance: balance})
+                    body: JSON.stringify(payload),
+                    keepalive: true 
                 });
-                console.log("Balance saved!");
-            } catch (e) { console.error("Save error"); }
+                console.log("Saved to server");
+                // Можно добавить маленькую подсказку, что сохранено
+                tg.MainButton.setText("⭐ БАЛАНС ОБНОВЛЕН").show();
+                setTimeout(() => tg.MainButton.hide(), 1500);
+            } catch (e) { 
+                console.error("Save failed");
+            }
             
-            sync(); // Финальный подсос данных
+            // 3. Контрольный синхрон через секунду
+            setTimeout(sync, 1000);
         }
 
         function spawnStar() {
