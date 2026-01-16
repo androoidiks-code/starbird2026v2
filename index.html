@@ -40,22 +40,6 @@
         #takeBtn { background: #fcd34d; color: #020617; grid-column: span 2; display: none; font-size: 22px; padding: 20px; animation: pulse 1.5s infinite; border-bottom: 6px solid #d97706; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
-        /* СПЕЦ-ЭФФЕКТ ДЛЯ СКРИНШОТА */
-        #big-win-overlay { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: rgba(0,0,0,0.9); z-index: 1000; 
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            animation: fadeIn 0.5s forwards;
-        }
-        .win-card {
-            background: linear-gradient(145deg, #1e293b, #020617);
-            padding: 40px; border-radius: 30px; border: 3px solid var(--yellow);
-            box-shadow: 0 0 50px var(--yellow); text-align: center;
-        }
-        .win-title { font-size: 40px; color: var(--yellow); font-weight: 900; margin-bottom: 10px; }
-        .win-amount { font-size: 60px; color: white; font-weight: 900; margin-bottom: 20px; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         .cloud { position: absolute; background: white; border-radius: 50%; opacity: 0.6; animation: move linear infinite; filter: blur(2px); }
         .star-fx { position: absolute; font-size: 24px; animation: collect 0.6s ease-out forwards; z-index: 5; }
         @keyframes collect { 0% { opacity: 1; transform: scale(1.5); } 100% { opacity: 0; transform: translate(-150px, -50px) scale(0.5); } }
@@ -65,15 +49,6 @@
     </style>
 </head>
 <body>
-
-    <div id="big-win-overlay">
-        <div class="win-card">
-            <div class="win-title">🎊 BIG WIN 🎊</div>
-            <div class="win-amount">1000 ⭐</div>
-            <div style="color: #94a3b8; margin-bottom: 20px;">CONGRATULATIONS!</div>
-            <button class="btn btn-pay" style="width: 100%; padding: 15px;" onclick="location.reload()">OK, LETS GO!</button>
-        </div>
-    </div>
 
     <div class="header-panel">
         <div class="stats-grid">
@@ -126,7 +101,10 @@
             
             if (freeLeft > 0) {
                 btnFree.disabled = true;
-                btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
+                const h = Math.floor(freeLeft / 3600000);
+                const m = Math.floor((freeLeft % 3600000) / 60000);
+                const s = Math.floor((freeLeft % 60000) / 1000);
+                btnFree.innerText = `⏳ ${h}ч ${m}м ${s}с`;
             } else {
                 btnFree.disabled = false;
                 btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`;
@@ -134,19 +112,21 @@
 
             const payLast = localStorage.getItem('pay_cooldown') || 0;
             const payLeft = 30000 - (now - payLast);
-            const payBtns = ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'];
+            const payBtns = {
+                'btn-spin': '🎰 СПИН (50 ⭐)',
+                'btn-super': '💎 СУПЕР (150 ⭐)',
+                'btn-turbo': '🔥 ТУРБО (300 ⭐)',
+                'btn-energy': '⚡ ЭНЕРГИЯ (25 ⭐)'
+            };
             
-            payBtns.forEach(id => {
+            Object.keys(payBtns).forEach(id => {
                 const btn = document.getElementById(id);
                 if (payLeft > 0) {
                     btn.disabled = true;
-                    btn.innerText = `😴 ПТИЧКА УСТАЛА ${Math.ceil(payLeft/1000)}с`;
+                    btn.innerText = `⏳ ${Math.ceil(payLeft/1000)}с`;
                 } else {
                     btn.disabled = false;
-                    if(id === 'btn-spin') btn.innerText = '🎰 СПИН (50 ⭐)';
-                    if(id === 'btn-super') btn.innerText = '💎 СУПЕР (150 ⭐)';
-                    if(id === 'btn-turbo') btn.innerText = '🔥 ТУРБО (300 ⭐)';
-                    if(id === 'btn-energy') btn.innerText = '⚡ ЭНЕРГИЯ (25 ⭐)';
+                    btn.innerText = payBtns[id];
                 }
             });
         }
@@ -176,21 +156,70 @@
                 tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
-
-            if (type === 'free') {
-                localStorage.setItem('free_cooldown', Date.now());
-            } else {
-                localStorage.setItem('pay_cooldown', Date.now());
-            }
-            
+            if (type === 'free') localStorage.setItem('free_cooldown', Date.now());
+            else localStorage.setItem('pay_cooldown', Date.now());
             updateCooldowns();
             start(cost, type);
+        }
+
+        // НОВАЯ МАТЕМАТИКА ЗВЕЗД
+        function getStarValue(sec, type) {
+            const r = Math.random() * 100;
+            if (type === 'free') {
+                if (sec <= 2) return r < 75 ? 1 : 5;
+                if (sec <= 3) return r < 60 ? 8 : (r < 80 ? 15 : 5);
+                if (sec <= 4) return r < 70 ? 5 : 10;
+                if (sec <= 5) return r < 24 ? 25 : (r < 25 ? 50 : 5);
+                return 5;
+            }
+            if (type === 'spin') {
+                if (sec <= 2) return r < 75 ? 8 : 10;
+                if (sec <= 3) return r < 60 ? 5 : (r < 80 ? 11 : 10);
+                if (sec <= 4) return r < 70 ? 9 : 15;
+                if (sec <= 5) return r < 24 ? 25 : (r < 25 ? 100 : 10);
+                return 10;
+            }
+            if (type === 'super') {
+                if (sec <= 2) return r < 75 ? 10 : 15;
+                if (sec <= 3) return r < 60 ? 11 : (r < 80 ? 25 : 40);
+                if (sec <= 4) return r < 70 ? 18 : 30;
+                if (sec <= 5) return r < 24 ? 100 : (r < 25 ? 200 : 15);
+                return 15;
+            }
+            if (type === 'turbo') {
+                if (sec <= 2) return r < 75 ? 20 : 35;
+                if (sec <= 3) return r < 60 ? 50 : (r < 80 ? 60 : 55);
+                if (sec <= 4) return r < 70 ? 25 : 50;
+                if (sec <= 5) return r < 24 ? 300 : (r < 25 ? 1000 : 60);
+                return 60;
+            }
+            return 1;
+        }
+
+        // НОВАЯ МАТЕМАТИКА КРАША
+        function getCrashChance(sec, type) {
+            if (type === 'free') {
+                if (sec < 1.5) return 0.05;
+                if (sec < 3.0) return 0.07;
+                if (sec < 4.0) return 0.35;
+                return 0.75;
+            }
+            if (type === 'spin') {
+                if (sec < 1.5) return 0.05;
+                if (sec < 3.0) return 0.13;
+                if (sec < 4.0) return 0.50;
+                return 0.89;
+            }
+            // Для остальных (super, turbo, energy) используем базовый прогрессивный шанс
+            if (sec < 1.5) return 0.05;
+            if (sec < 3.0) return 0.20;
+            if (sec < 4.0) return 0.50;
+            return 0.89;
         }
 
         function start(cost, type) {
             isGaming = true; seconds = 0; flightWin = 0;
             if (type !== 'free') balance -= cost;
-            
             updateUI();
             document.getElementById('controls').style.display = 'none';
             document.getElementById('takeBtn').style.display = 'block';
@@ -199,52 +228,24 @@
             let m = 1.0;
             window.timer = setInterval(() => {
                 seconds += 0.5;
-                
-                // РЕЖИМ ФЕЙКОВОГО УСПЕХА ДЛЯ СКРИНШОТА
-                if (type === 'free') {
-                    // В бесплатном полете птица НЕ врезается и быстро набирает 1000
-                    m += 0.8;
-                    flightWin += 115; 
-                    
-                    if (flightWin >= 1000) {
-                        flightWin = 1000;
-                        clearInterval(window.timer);
-                        showBigWin(); // Показать плашку BIG WIN
-                        return;
-                    }
-                } else {
-                    // Обычная логика для платных полетов
-                    let crashChance = seconds * 0.15;
-                    if (Math.random() < crashChance) {
-                        clearInterval(window.timer);
-                        end(false);
-                        return;
-                    }
-                    m += 0.15;
-                    flightWin += Math.floor(Math.random() * 20) + 5;
+                if (Math.random() < getCrashChance(seconds, type)) {
+                    clearInterval(window.timer);
+                    end(false);
+                    return;
                 }
-
+                m += 0.15;
+                let val = getStarValue(seconds, type);
+                flightWin += val;
                 document.getElementById('win').innerText = flightWin;
                 document.getElementById('multiplier').innerText = `x${m.toFixed(2)}`;
                 const gf = document.getElementById('gain-float');
-                gf.innerText = `+${type === 'free' ? 115 : '?'}`; 
-                gf.style.display = 'block';
+                gf.innerText = `+${val}`; gf.style.display = 'block';
                 setTimeout(() => gf.style.display = 'none', 400);
                 document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
                 spawnStar();
                 document.getElementById('snd_pop').play();
                 tg.HapticFeedback.impactOccurred('light');
-
             }, 500);
-        }
-
-        function showBigWin() {
-            tg.HapticFeedback.notificationOccurred('success');
-            document.getElementById('big-win-overlay').style.display = 'flex';
-            // Сразу засчитываем баланс
-            balance += flightWin;
-            updateUI();
-            saveToServer();
         }
 
         function take() {
@@ -267,7 +268,6 @@
             } else {
                 tg.HapticFeedback.notificationOccurred('success');
             }
-
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
@@ -284,7 +284,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: cleanUserId, balance: balance })
                 });
-                sync();
+                setTimeout(sync, 500);
             } catch (e) { console.error("Save failed"); }
         }
 
