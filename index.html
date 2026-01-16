@@ -87,13 +87,15 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        https://heart-spotlight-alt-furnishings.trycloudflare.com // Твой IP
+        // ИСПРАВЛЕНО: Теперь адрес корректно присвоен переменной API
+        const API = "https://heart-spotlight-alt-furnishings.trycloudflare.com"; 
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
 
         async function sync() {
             try {
+                // ИСПРАВЛЕНО: Используется переменная API
                 const res = await fetch(`${API}/get_user?user_id=${userId.toString()}&t=${Date.now()}`);
                 const d = await res.json();
                 if(d.balance !== undefined) {
@@ -193,14 +195,13 @@
 
             updateUI();
             
-            // ИСПРАВЛЕННЫЙ БЛОК ОТПРАВКИ
             const cleanUserId = userId.toString().replace("Id:", "").trim();
             
             console.log("Попытка сохранения:", cleanUserId, balance);
 
             try {
-                // Используем прямой URL без лишних переменных для надежности
-                const response = await fetch("http://85.198.96.191:8080/update_balance", {
+                // ИСПРАВЛЕНО: Используется переменная API для отправки баланса
+                const response = await fetch(`${API}/update_balance`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
