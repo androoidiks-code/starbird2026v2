@@ -87,7 +87,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const API = "http://85.198.96.191:8080"; // Твой IP
+        const API = "https://totals-sam-watershed-framing.trycloudflare.com"; // Твой IP
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
