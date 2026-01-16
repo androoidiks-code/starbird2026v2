@@ -170,11 +170,9 @@
             end(true);
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ END - ВСЯ ЛОГИКА ТУТ
         async function end(win) {
             isGaming = false;
             
-            // Сохраняем твой визуал взрыва
             if(!win) {
                 flightWin = 0;
                 const b = document.createElement('div');
@@ -188,37 +186,43 @@
                 tg.HapticFeedback.notificationOccurred('success');
             }
 
-            // Возвращаем интерфейс
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
             document.getElementById('multiplier').style.display = 'none';
             document.getElementById('win').innerText = 0;
 
-            // 1. Обновляем UI сразу
             updateUI();
             
-            // 2. Отправляем на сервер (исправленный формат)
-            const payload = {
-                user_id: userId.toString().trim(),
-                balance: balance
-            };
+            // ИСПРАВЛЕННЫЙ БЛОК ОТПРАВКИ
+            const cleanUserId = userId.toString().replace("Id:", "").trim();
+            
+            console.log("Попытка сохранения:", cleanUserId, balance);
 
             try {
-                await fetch(`${API}/update_balance`, {
+                // Используем прямой URL без лишних переменных для надежности
+                const response = await fetch("http://85.198.96.191:8080/update_balance", {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload),
-                    keepalive: true 
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: cleanUserId,
+                        balance: balance
+                    })
                 });
-                console.log("Saved to server");
-                // Можно добавить маленькую подсказку, что сохранено
-                tg.MainButton.setText("⭐ БАЛАНС ОБНОВЛЕН").show();
-                setTimeout(() => tg.MainButton.hide(), 1500);
+
+                if (response.ok) {
+                    console.log("✅ Сохранено на сервере!");
+                    tg.MainButton.setText("⭐ БАЛАНС СОХРАНЕН").show();
+                    setTimeout(() => tg.MainButton.hide(), 1500);
+                } else {
+                    console.error("❌ Ошибка сервера:", response.status);
+                }
             } catch (e) { 
-                console.error("Save failed");
+                console.error("🚨 Сетевая ошибка:", e);
             }
             
-            // 3. Контрольный синхрон через секунду
             setTimeout(sync, 1000);
         }
 
