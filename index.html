@@ -29,7 +29,8 @@
 
         .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn { padding: 12px; border: none; border-radius: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.1s; border-bottom: 5px solid rgba(0,0,0,0.3); font-size: 11px; text-transform: uppercase; }
-        .btn:active { transform: translateY(3px); border-bottom: none; }
+        .btn:active:not(:disabled) { transform: translateY(3px); border-bottom: none; }
+        .btn:disabled { background: #334155 !important; color: #94a3b8; border-bottom: none; cursor: not-allowed; opacity: 0.8; }
         
         .btn-free { background: #8b5cf6; grid-column: span 2; font-size: 14px; }
         .btn-pay { background: #10b981; }
@@ -67,11 +68,11 @@
     </div>
 
     <div class="grid-btns" id="controls">
-        <button class="btn btn-free" onclick="fly(0, 'free')">🚀 БЕСПЛАТНЫЙ ПОЛЕТ</button>
-        <button class="btn btn-pay" onclick="fly(50, 'spin')">🎰 СПИН (50 ⭐)</button>
-        <button class="btn btn-pay" onclick="fly(150, 'super')">💎 СУПЕР (150 ⭐)</button>
-        <button class="btn btn-pay" style="background:#059669" onclick="fly(300, 'turbo')">🔥 ТУРБО (300 ⭐)</button>
-        <button class="btn btn-warn" onclick="fly(25, 'energy')">⚡ ЭНЕРГИЯ (25 ⭐)</button>
+        <button id="btn-free" class="btn btn-free" onclick="fly(0, 'free')">🚀 БЕСПЛАТНЫЙ ПОЛЕТ</button>
+        <button id="btn-spin" class="btn btn-pay" onclick="fly(50, 'spin')">🎰 СПИН (50 ⭐)</button>
+        <button id="btn-super" class="btn btn-pay" onclick="fly(150, 'super')">💎 СУПЕР (150 ⭐)</button>
+        <button id="btn-turbo" class="btn btn-pay" style="background:#059669" onclick="fly(300, 'turbo')">🔥 ТУРБО (300 ⭐)</button>
+        <button id="btn-energy" class="btn btn-warn" onclick="fly(25, 'energy')">⚡ ЭНЕРГИЯ (25 ⭐)</button>
         <button class="btn btn-soon" onclick="tg.close()">👫 ДРУЗЬЯ</button>
         <button class="btn btn-soon">🏆 ЛИГА (СКОРО)</button>
         <button class="btn btn-soon">🛒 МАГАЗИН (СКОРО)</button>
@@ -87,15 +88,52 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ИСПРАВЛЕНО: Теперь адрес корректно присвоен переменной API
         const API = "https://heart-spotlight-alt-furnishings.trycloudflare.com"; 
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
 
+        // Таймеры ограничений
+        function updateCooldowns() {
+            const now = Date.now();
+            
+            // Бесплатный полет (8 часов)
+            const freeLast = localStorage.getItem('free_cooldown') || 0;
+            const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
+            const btnFree = document.getElementById('btn-free');
+            if (freeLeft > 0) {
+                btnFree.disabled = true;
+                btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
+            } else {
+                btnFree.disabled = false;
+                btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`;
+            }
+
+            // Платные полеты (30 секунд)
+            const payLast = localStorage.getItem('pay_cooldown') || 0;
+            const payLeft = 30000 - (now - payLast);
+            const payBtns = ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'];
+            
+            payBtns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (payLeft > 0) {
+                    btn.disabled = true;
+                    btn.innerText = `😴 ПТИЧКА УСТАЛА ${Math.ceil(payLeft/1000)}с`;
+                } else {
+                    btn.disabled = false;
+                    // Возвращаем оригинальные названия
+                    if(id === 'btn-spin') btn.innerText = '🎰 СПИН (50 ⭐)';
+                    if(id === 'btn-super') btn.innerText = '💎 СУПЕР (150 ⭐)';
+                    if(id === 'btn-turbo') btn.innerText = '🔥 ТУРБО (300 ⭐)';
+                    if(id === 'btn-energy') btn.innerText = '⚡ ЭНЕРГИЯ (25 ⭐)';
+                }
+            });
+        }
+
+        setInterval(updateCooldowns, 1000);
+
         async function sync() {
             try {
-                // ИСПРАВЛЕНО: Используется переменная API
                 const res = await fetch(`${API}/get_user?user_id=${userId.toString()}&t=${Date.now()}`);
                 const d = await res.json();
                 if(d.balance !== undefined) {
@@ -117,6 +155,15 @@
                 tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
+
+            // Установка кулдаунов ПРИ СТАРТЕ
+            if (type === 'free') {
+                localStorage.setItem('free_cooldown', Date.now());
+            } else {
+                localStorage.setItem('pay_cooldown', Date.now());
+            }
+            
+            updateCooldowns();
             start(cost, type);
         }
 
@@ -130,6 +177,7 @@
             if (type === 'spin') return Math.floor(Math.random() * 10) + 5;
             if (type === 'super') return Math.floor(Math.random() * 20) + 10;
             if (type === 'turbo') return Math.floor(Math.random() * 50) + 20;
+            if (type === 'energy') return 1;
             return 1;
         }
 
@@ -196,33 +244,19 @@
             updateUI();
             
             const cleanUserId = userId.toString().replace("Id:", "").trim();
-            
-            console.log("Попытка сохранения:", cleanUserId, balance);
 
             try {
-                // ИСПРАВЛЕНО: Используется переменная API для отправки баланса
                 const response = await fetch(`${API}/update_balance`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        user_id: cleanUserId,
-                        balance: balance
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: cleanUserId, balance: balance })
                 });
 
                 if (response.ok) {
-                    console.log("✅ Сохранено на сервере!");
                     tg.MainButton.setText("⭐ БАЛАНС СОХРАНЕН").show();
                     setTimeout(() => tg.MainButton.hide(), 1500);
-                } else {
-                    console.error("❌ Ошибка сервера:", response.status);
                 }
-            } catch (e) { 
-                console.error("🚨 Сетевая ошибка:", e);
-            }
+            } catch (e) { console.error("Network error"); }
             
             setTimeout(sync, 1000);
         }
@@ -255,6 +289,7 @@
         document.head.appendChild(style);
 
         createClouds();
+        updateCooldowns();
         sync();
     </script>
 </body>
