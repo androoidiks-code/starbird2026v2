@@ -92,13 +92,16 @@
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
+        let adminMode = false; // Перенесено вверх для доступа из функций
 
         function updateCooldowns() {
             const now = Date.now();
             const freeLast = localStorage.getItem('free_cooldown') || 0;
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
             const btnFree = document.getElementById('btn-free');
-            if (freeLeft > 0) {
+            
+            // ПРАВКА: Если админ-режим включен, кнопка всегда активна
+            if (freeLeft > 0 && !adminMode) {
                 btnFree.disabled = true;
                 btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
             } else {
@@ -277,7 +280,6 @@
         sync();
 
         // --- БЛОК ДЛЯ ПРОМО-РЕКЛАМЫ (ИНТЕГРИРОВАННЫЙ) ---
-        let adminMode = false;
         let clickCount = 0;
 
         document.getElementById('wallet-box').addEventListener('click', () => {
@@ -286,8 +288,9 @@
                 adminMode = !adminMode;
                 clickCount = 0;
                 const status = adminMode ? "ВКЛЮЧЕН" : "ВЫКЛЮЧЕН";
-                tg.showAlert(`🚀 ПРОМО-РЕЖИМ ${status}\n(Краш отключен, профит увеличен)`);
+                tg.showAlert(`🚀 ПРОМО-РЕЖИМ ${status}\n(Краш отключен, профит увеличен, ФРИ-СПИН открыт)`);
                 document.getElementById('multiplier').style.color = adminMode ? "#10b981" : "#fcd34d";
+                updateCooldowns(); // Мгновенно обновить состояние кнопок
             }
         });
 
