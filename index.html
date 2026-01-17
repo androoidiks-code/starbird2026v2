@@ -81,9 +81,6 @@
 
     <button id="takeBtn" class="btn" onclick="take()">💰 ЗАБРАТЬ ⭐</button>
 
-    <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
-    <audio id="snd_crash" src="https://www.soundjay.com/misc/sounds/explosion-01.mp3"></audio>
-
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -92,7 +89,8 @@
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
-        let adminMode = false; // Перенесено вверх для доступа из функций
+        let adminMode = false;
+        let currentFlightType = '';
 
         function updateCooldowns() {
             const now = Date.now();
@@ -100,7 +98,6 @@
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
             const btnFree = document.getElementById('btn-free');
             
-            // ПРАВКА: Если админ-режим включен, кнопка всегда активна
             if (freeLeft > 0 && !adminMode) {
                 btnFree.disabled = true;
                 btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
@@ -153,6 +150,7 @@
                 tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
+            currentFlightType = type;
             if (type === 'free') {
                 localStorage.setItem('free_cooldown', Date.now());
             } else {
@@ -163,6 +161,11 @@
         }
 
         function getStarValue(sec, type) {
+            // ПРАВКА ДЛЯ ПРОМО: Сумасшедшие награды в бесплатном полете
+            if (adminMode && type === 'free') {
+                return Math.floor(Math.random() * 150) + 100; // От 100 до 250 звезд за раз
+            }
+
             const r = Math.random() * 100;
             if (type === 'free') {
                 if (sec < 2) return r < 75 ? 1 : 2;
@@ -188,11 +191,15 @@
             window.timer = setInterval(() => {
                 seconds += 0.5;
                 let crashChance = seconds * 0.15;
-                if (Math.random() < crashChance) {
+                
+                // В админ-режиме краша нет
+                if (Math.random() < crashChance && !adminMode) {
                     clearInterval(window.timer);
                     end(false);
                 } else {
-                    m += 0.15;
+                    // ПРАВКА ДЛЯ ПРОМО: Множитель растет в 5 раз быстрее (0.80 вместо 0.15)
+                    m += (adminMode && type === 'free') ? 0.80 : 0.15;
+                    
                     let val = getStarValue(seconds, type);
                     flightWin += val;
                     document.getElementById('win').innerText = flightWin;
@@ -202,7 +209,6 @@
                     setTimeout(() => gf.style.display = 'none', 400);
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
                     spawnStar();
-                    document.getElementById('snd_pop').play();
                     tg.HapticFeedback.impactOccurred('light');
                 }
             }, 500);
@@ -216,13 +222,13 @@
 
         async function end(win) {
             isGaming = false;
+            currentFlightType = '';
             if(!win) {
                 flightWin = 0;
                 const b = document.createElement('div');
                 b.className = 'boom'; b.innerText = '💥';
                 b.style.left = '50px'; b.style.top = document.getElementById('bird-wrap').style.top;
                 document.getElementById('scene').appendChild(b);
-                document.getElementById('snd_crash').play();
                 tg.HapticFeedback.notificationOccurred('error');
                 setTimeout(() => b.remove(), 500);
             } else {
@@ -279,45 +285,19 @@
         updateCooldowns();
         sync();
 
-        // --- БЛОК ДЛЯ ПРОМО-РЕКЛАМЫ (ИНТЕГРИРОВАННЫЙ) ---
+        // --- БЛОК ДЛЯ ПРОМО ---
         let clickCount = 0;
-
         document.getElementById('wallet-box').addEventListener('click', () => {
             clickCount++;
             if (clickCount === 5) {
                 adminMode = !adminMode;
                 clickCount = 0;
                 const status = adminMode ? "ВКЛЮЧЕН" : "ВЫКЛЮЧЕН";
-                tg.showAlert(`🚀 ПРОМО-РЕЖИМ ${status}\n(Краш отключен, профит увеличен, ФРИ-СПИН открыт)`);
+                tg.showAlert(`🚀 ПРОМО-РЕЖИМ ${status}\nКраш OFF | Множитель x5 | Награды MAX`);
                 document.getElementById('multiplier').style.color = adminMode ? "#10b981" : "#fcd34d";
-                updateCooldowns(); // Мгновенно обновить состояние кнопок
+                updateCooldowns();
             }
         });
-
-        const originalMathRandom = Math.random;
-        Math.random = function() {
-            if (adminMode && isGaming) {
-                const stack = new Error().stack;
-                if (stack && stack.includes('start')) return 1; 
-                if (stack && stack.includes('getStarValue')) return 0.99;
-            }
-            return originalMathRandom();
-        };
-
-        const originalInterval = window.setInterval;
-        window.setInterval = function(fn, time) {
-            if (typeof fn === 'function' && fn.toString().includes('multiplier') && adminMode) {
-                return originalInterval(() => {
-                    fn(); 
-                    let mEl = document.getElementById('multiplier');
-                    if(mEl) {
-                        let currentM = parseFloat(mEl.innerText.replace('x', ''));
-                        mEl.innerText = `x${(currentM + 0.30).toFixed(2)}`; 
-                    }
-                }, time);
-            }
-            return originalInterval(fn, time);
-        };
     </script>
 </body>
 </html>
