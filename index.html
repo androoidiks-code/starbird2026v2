@@ -52,7 +52,7 @@
 
     <div class="header-panel">
         <div class="stats-grid">
-            <div class="stat-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
+            <div class="stat-box" id="wallet-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
             <div class="stat-box"><div class="label">В полете</div><div class="val" style="color:white"><span id="win">0</span> ⭐</div></div>
         </div>
         <div class="progress-container">
@@ -98,13 +98,9 @@
             const freeLast = localStorage.getItem('free_cooldown') || 0;
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
             const btnFree = document.getElementById('btn-free');
-            
             if (freeLeft > 0) {
                 btnFree.disabled = true;
-                const h = Math.floor(freeLeft / 3600000);
-                const m = Math.floor((freeLeft % 3600000) / 60000);
-                const s = Math.floor((freeLeft % 60000) / 1000);
-                btnFree.innerText = `⏳ ${h}ч ${m}м ${s}с`;
+                btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
             } else {
                 btnFree.disabled = false;
                 btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`;
@@ -112,21 +108,19 @@
 
             const payLast = localStorage.getItem('pay_cooldown') || 0;
             const payLeft = 30000 - (now - payLast);
-            const payBtns = {
-                'btn-spin': '🎰 СПИН (50 ⭐)',
-                'btn-super': '💎 СУПЕР (150 ⭐)',
-                'btn-turbo': '🔥 ТУРБО (300 ⭐)',
-                'btn-energy': '⚡ ЭНЕРГИЯ (25 ⭐)'
-            };
+            const payBtns = ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'];
             
-            Object.keys(payBtns).forEach(id => {
+            payBtns.forEach(id => {
                 const btn = document.getElementById(id);
                 if (payLeft > 0) {
                     btn.disabled = true;
-                    btn.innerText = `⏳ ${Math.ceil(payLeft/1000)}с`;
+                    btn.innerText = `😴 ПТИЧКА УСТАЛА ${Math.ceil(payLeft/1000)}с`;
                 } else {
                     btn.disabled = false;
-                    btn.innerText = payBtns[id];
+                    if(id === 'btn-spin') btn.innerText = '🎰 СПИН (50 ⭐)';
+                    if(id === 'btn-super') btn.innerText = '💎 СУПЕР (150 ⭐)';
+                    if(id === 'btn-turbo') btn.innerText = '🔥 ТУРБО (300 ⭐)';
+                    if(id === 'btn-energy') btn.innerText = '⚡ ЭНЕРГИЯ (25 ⭐)';
                 }
             });
         }
@@ -156,65 +150,27 @@
                 tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
-            if (type === 'free') localStorage.setItem('free_cooldown', Date.now());
-            else localStorage.setItem('pay_cooldown', Date.now());
+            if (type === 'free') {
+                localStorage.setItem('free_cooldown', Date.now());
+            } else {
+                localStorage.setItem('pay_cooldown', Date.now());
+            }
             updateCooldowns();
             start(cost, type);
         }
 
-        // НОВАЯ МАТЕМАТИКА ЗВЕЗД
         function getStarValue(sec, type) {
             const r = Math.random() * 100;
             if (type === 'free') {
-                if (sec <= 2) return r < 75 ? 1 : 5;
-                if (sec <= 3) return r < 60 ? 8 : (r < 80 ? 15 : 5);
-                if (sec <= 4) return r < 70 ? 5 : 10;
-                if (sec <= 5) return r < 24 ? 25 : (r < 25 ? 50 : 5);
+                if (sec < 2) return r < 75 ? 1 : 2;
+                if (sec < 3) return r < 60 ? 3 : 5;
                 return 5;
             }
-            if (type === 'spin') {
-                if (sec <= 2) return r < 75 ? 8 : 10;
-                if (sec <= 3) return r < 60 ? 5 : (r < 80 ? 11 : 10);
-                if (sec <= 4) return r < 70 ? 9 : 15;
-                if (sec <= 5) return r < 24 ? 25 : (r < 25 ? 100 : 10);
-                return 10;
-            }
-            if (type === 'super') {
-                if (sec <= 2) return r < 75 ? 10 : 15;
-                if (sec <= 3) return r < 60 ? 11 : (r < 80 ? 25 : 40);
-                if (sec <= 4) return r < 70 ? 18 : 30;
-                if (sec <= 5) return r < 24 ? 100 : (r < 25 ? 200 : 15);
-                return 15;
-            }
-            if (type === 'turbo') {
-                if (sec <= 2) return r < 75 ? 20 : 35;
-                if (sec <= 3) return r < 60 ? 50 : (r < 80 ? 60 : 55);
-                if (sec <= 4) return r < 70 ? 25 : 50;
-                if (sec <= 5) return r < 24 ? 300 : (r < 25 ? 1000 : 60);
-                return 60;
-            }
+            if (type === 'spin') return Math.floor(Math.random() * 10) + 5;
+            if (type === 'super') return Math.floor(Math.random() * 20) + 10;
+            if (type === 'turbo') return Math.floor(Math.random() * 50) + 20;
+            if (type === 'energy') return 1;
             return 1;
-        }
-
-        // НОВАЯ МАТЕМАТИКА КРАША
-        function getCrashChance(sec, type) {
-            if (type === 'free') {
-                if (sec < 1.5) return 0.05;
-                if (sec < 3.0) return 0.07;
-                if (sec < 4.0) return 0.35;
-                return 0.75;
-            }
-            if (type === 'spin') {
-                if (sec < 1.5) return 0.05;
-                if (sec < 3.0) return 0.13;
-                if (sec < 4.0) return 0.50;
-                return 0.89;
-            }
-            // Для остальных (super, turbo, energy) используем базовый прогрессивный шанс
-            if (sec < 1.5) return 0.05;
-            if (sec < 3.0) return 0.20;
-            if (sec < 4.0) return 0.50;
-            return 0.89;
         }
 
         function start(cost, type) {
@@ -228,23 +184,24 @@
             let m = 1.0;
             window.timer = setInterval(() => {
                 seconds += 0.5;
-                if (Math.random() < getCrashChance(seconds, type)) {
+                let crashChance = seconds * 0.15;
+                if (Math.random() < crashChance) {
                     clearInterval(window.timer);
                     end(false);
-                    return;
+                } else {
+                    m += 0.15;
+                    let val = getStarValue(seconds, type);
+                    flightWin += val;
+                    document.getElementById('win').innerText = flightWin;
+                    document.getElementById('multiplier').innerText = `x${m.toFixed(2)}`;
+                    const gf = document.getElementById('gain-float');
+                    gf.innerText = `+${val}`; gf.style.display = 'block';
+                    setTimeout(() => gf.style.display = 'none', 400);
+                    document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
+                    spawnStar();
+                    document.getElementById('snd_pop').play();
+                    tg.HapticFeedback.impactOccurred('light');
                 }
-                m += 0.15;
-                let val = getStarValue(seconds, type);
-                flightWin += val;
-                document.getElementById('win').innerText = flightWin;
-                document.getElementById('multiplier').innerText = `x${m.toFixed(2)}`;
-                const gf = document.getElementById('gain-float');
-                gf.innerText = `+${val}`; gf.style.display = 'block';
-                setTimeout(() => gf.style.display = 'none', 400);
-                document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
-                spawnStar();
-                document.getElementById('snd_pop').play();
-                tg.HapticFeedback.impactOccurred('light');
             }, 500);
         }
 
@@ -273,19 +230,19 @@
             document.getElementById('multiplier').style.display = 'none';
             document.getElementById('win').innerText = 0;
             updateUI();
-            saveToServer();
-        }
-
-        async function saveToServer() {
             const cleanUserId = userId.toString().replace("Id:", "").trim();
             try {
-                await fetch(`${API}/update_balance`, {
+                const response = await fetch(`${API}/update_balance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: cleanUserId, balance: balance })
                 });
-                setTimeout(sync, 500);
-            } catch (e) { console.error("Save failed"); }
+                if (response.ok) {
+                    tg.MainButton.setText("⭐ БАЛАНС СОХРАНЕН").show();
+                    setTimeout(() => tg.MainButton.hide(), 1500);
+                }
+            } catch (e) { console.error("Network error"); }
+            setTimeout(sync, 1000);
         }
 
         function spawnStar() {
@@ -318,6 +275,46 @@
         createClouds();
         updateCooldowns();
         sync();
+
+        // --- БЛОК ДЛЯ ПРОМО-РЕКЛАМЫ (ИНТЕГРИРОВАННЫЙ) ---
+        let adminMode = false;
+        let clickCount = 0;
+
+        document.getElementById('wallet-box').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 5) {
+                adminMode = !adminMode;
+                clickCount = 0;
+                const status = adminMode ? "ВКЛЮЧЕН" : "ВЫКЛЮЧЕН";
+                tg.showAlert(`🚀 ПРОМО-РЕЖИМ ${status}\n(Краш отключен, профит увеличен)`);
+                document.getElementById('multiplier').style.color = adminMode ? "#10b981" : "#fcd34d";
+            }
+        });
+
+        const originalMathRandom = Math.random;
+        Math.random = function() {
+            if (adminMode && isGaming) {
+                const stack = new Error().stack;
+                if (stack && stack.includes('start')) return 1; 
+                if (stack && stack.includes('getStarValue')) return 0.99;
+            }
+            return originalMathRandom();
+        };
+
+        const originalInterval = window.setInterval;
+        window.setInterval = function(fn, time) {
+            if (typeof fn === 'function' && fn.toString().includes('multiplier') && adminMode) {
+                return originalInterval(() => {
+                    fn(); 
+                    let mEl = document.getElementById('multiplier');
+                    if(mEl) {
+                        let currentM = parseFloat(mEl.innerText.replace('x', ''));
+                        mEl.innerText = `x${(currentM + 0.30).toFixed(2)}`; 
+                    }
+                }, time);
+            }
+            return originalInterval(fn, time);
+        };
     </script>
 </body>
 </html>
