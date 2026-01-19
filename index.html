@@ -109,11 +109,10 @@
         const API = "https://humanity-built-follow-hamilton.trycloudflare.com"; 
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
-        let balance = 0, flightWin = 0, isGaming = false, seconds = 0, currentMult = 1.0, alreadyTaken = false;
+        let balance = 0, flightWin = 0, isGaming = false, seconds = 0, currentMult = 1.0, alreadyTaken = false, crashPoint = 0;
 
         function updateCooldowns() {
             const now = Date.now();
-            // Free Cooldown (8h)
             const freeLast = localStorage.getItem('free_cooldown') || 0;
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
             const btnFree = document.getElementById('btn-free');
@@ -125,7 +124,6 @@
                 btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`;
             }
 
-            // Pay Cooldown (30s)
             const payLast = localStorage.getItem('pay_cooldown') || 0;
             const payLeft = 30000 - (now - payLast);
             ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'].forEach(id => {
@@ -167,7 +165,7 @@
         }
 
         function start(cost, type) {
-            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false;
+            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false; crashPoint = 0;
             if (type !== 'free') balance -= cost;
             updateUI();
             
@@ -178,8 +176,6 @@
             document.getElementById('takeBtn').innerText = "💰 ЗАБРАТЬ ⭐";
             document.getElementById('multiplier').style.display = 'block';
 
-            let crashPoint = 0; 
-
             window.timer = setInterval(() => {
                 seconds += 0.5;
                 
@@ -187,6 +183,7 @@
                     currentMult += 0.25;
                     document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
+                    spawnStar(); // Звезды летят до краша
                     if (seconds >= crashPoint) {
                         clearInterval(window.timer);
                         end(false);
@@ -228,9 +225,8 @@
             document.getElementById('takeBtn').disabled = true;
             document.getElementById('takeBtn').style.opacity = "0.6";
             
-            // Продлеваем полет от 6 до 12 секунд
             seconds = 0; 
-            crashPoint = 6 + Math.random() * 6; 
+            crashPoint = 6 + Math.random() * 8; // Полет до краша от 6 до 14 секунд
         }
 
         async function end(isManual) {
