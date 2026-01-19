@@ -24,7 +24,6 @@
         #bird { font-size: 55px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5)); display: inline-block; animation: wing 0.4s infinite alternate; }
         @keyframes wing { from { transform: scaleX(-1) rotate(-12deg); } to { transform: scaleX(-1) rotate(12deg); } }
         
-        /* Эффект тряски при взрыве */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -71,6 +70,12 @@
         .cloud { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: move linear infinite; filter: blur(2px); }
         .boom { font-size: 100px; position: absolute; z-index: 100; animation: boom-anim 0.6s ease-out forwards; }
         @keyframes boom-anim { 0% { transform: scale(0) rotate(0); opacity: 1; } 50% { transform: scale(1.5) rotate(20deg); opacity: 1; } 100% { transform: scale(2.5) rotate(-20deg); opacity: 0; } }
+
+        /* --- НОВЫЕ СТИЛИ ДЛЯ ДРУЗЕЙ --- */
+        #friends-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: #1e293b; border: 2px solid #0ea5e9; border-radius: 24px; z-index: 1000; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+        #friends-list-content { max-height: 250px; overflow-y: auto; margin-top: 15px; text-align: left; }
+        .friend-item { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 8px; font-size: 14px; color: #fcd34d; border-left: 3px solid #0ea5e9; }
+        .btn-close-modal { margin-top: 20px; background: #f43f5e; padding: 12px; border-radius: 15px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -112,6 +117,13 @@
         <button class="nav-item" onclick="showFriends()"><span class="nav-icon">👥</span>Друзья</button>
         <button class="nav-item" onclick="tg.showAlert('Лига (Скоро)')"><span class="nav-icon">🏆</span>Лига</button>
     </nav>
+
+    <div id="friends-modal">
+        <h2 style="margin:0; color:white; font-size: 18px;">👥 ВАШИ ДРУЗЬЯ</h2>
+        <p style="font-size: 10px; color: #94a3b8; margin: 5px 0;">За каждых 2 друзей +150 ⭐</p>
+        <div id="friends-list-content"></div>
+        <button class="btn-close-modal" onclick="document.getElementById('friends-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
 
     <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
     <audio id="snd_crash" src="https://www.soundjay.com/misc/sounds/explosion-01.mp3"></audio>
@@ -249,7 +261,6 @@
             isGaming = false;
             const finalWin = alreadyTaken ? flightWin : 0;
             
-            // Взрыв и эффекты
             const scene = document.getElementById('scene');
             scene.style.animation = "shake 0.5s cubic-bezier(.36,.07,.19,.97) both";
             scene.style.filter = "brightness(0.7)";
@@ -260,7 +271,7 @@
             scene.appendChild(b);
             
             const crashSnd = document.getElementById('snd_crash');
-            crashSnd.volume = 1.0; // Максимальная громкость взрыва
+            crashSnd.volume = 1.0;
             crashSnd.play();
             
             tg.HapticFeedback.notificationOccurred('error');
@@ -285,7 +296,6 @@
             
             list.prepend(item);
             
-            // Сохранение в LocalStorage
             let h = JSON.parse(localStorage.getItem('bird_history') || '[]');
             h.push({w:win, m:m, t:new Date().toLocaleTimeString()});
             if(h.length > 15) h.shift();
@@ -309,8 +319,37 @@
             document.getElementById('prog-val').innerText = balance;
         }
 
-        function showFriends() {
-            tg.showAlert(`Твой ID: ${userId}\nПриглашенные друзья сохраняются в базе!`);
+        /* --- ОБНОВЛЕННАЯ ФУНКЦИЯ ДРУЗЕЙ --- */
+        async function showFriends() {
+            const modal = document.getElementById('friends-modal');
+            const list = document.getElementById('friends-list-content');
+            list.innerHTML = "<p style='color:gray; text-align:center;'>Загрузка...</p>";
+            modal.style.display = 'block';
+            
+            try {
+                const r = await fetch(`${API}/get_user?user_id=${userId}`);
+                const data = await r.json();
+                const friends = data.friend_list || [];
+                
+                list.innerHTML = "";
+                if (friends.length === 0) {
+                    list.innerHTML = "<p style='color:gray; text-align:center; font-size:12px;'>У вас пока нет приглашенных друзей.</p>";
+                } else {
+                    friends.forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'friend-item';
+                        div.innerText = "👤 " + name;
+                        list.appendChild(div);
+                    });
+                }
+                // На всякий случай обновляем баланс (если упал бонус за друга)
+                if(data.balance !== undefined) {
+                    balance = data.balance;
+                    updateUI();
+                }
+            } catch (e) {
+                list.innerHTML = "<p style='color:red;'>Ошибка загрузки</p>";
+            }
         }
 
         function loadAll() {
