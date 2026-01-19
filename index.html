@@ -94,31 +94,32 @@
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
         let testMode = false, testClicks = 0;
 
-        // Функция активации ТЕСТОВОГО РЕЖИМА (10 кликов)
         function activateTestMode() {
             testClicks++;
             if (testClicks >= 10 && !testMode) {
                 testMode = true;
                 tg.showAlert("🎥 TEST MODE: ON (Для промо)");
                 document.getElementById('wallet-box').style.borderColor = "var(--red)";
+                updateCooldowns(); // Обновить визуально сразу
             }
         }
 
         function updateCooldowns() {
+            const now = Date.now();
+            const btnFree = document.getElementById('btn-free');
+
             if(testMode) {
-                // В тест моде нет кулдаунов
                 const btns = ['btn-free', 'btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'];
                 btns.forEach(id => {
                     const b = document.getElementById(id);
                     if(b) { b.disabled = false; b.style.opacity = "1"; }
                 });
+                btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`; // Всегда чистый текст в тест-моде
                 return;
             }
 
-            const now = Date.now();
             const freeLast = localStorage.getItem('free_cooldown') || 0;
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
-            const btnFree = document.getElementById('btn-free');
             if (freeLeft > 0) {
                 btnFree.disabled = true;
                 btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)} ДО СПИНА`;
@@ -185,7 +186,7 @@
         }
 
         function getStarValue(sec, type) {
-            if (testMode) return Math.floor(Math.random() * 500) + 100; // Сумасшедшие суммы для видео
+            if (testMode) return Math.floor(Math.random() * 500) + 100;
 
             const r = Math.random() * 100;
             if (type === 'free') {
@@ -212,14 +213,13 @@
             let m = 1.0;
             window.timer = setInterval(() => {
                 seconds += 0.5;
-                // В тест моде шанс краша всего 10%
                 let crashChance = testMode ? 0.05 : seconds * 0.15;
                 
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
                     end(false);
                 } else {
-                    m += testMode ? 1.5 : 0.15; // В тест моде множитель летит быстрее
+                    m += testMode ? 1.5 : 0.15;
                     let val = getStarValue(seconds, type);
                     flightWin += val;
                     document.getElementById('win').innerText = flightWin;
@@ -243,7 +243,6 @@
 
         async function end(win) {
             isGaming = false;
-            
             if(!win) {
                 flightWin = 0;
                 const b = document.createElement('div');
@@ -264,7 +263,6 @@
 
             updateUI();
             
-            // Если включен ТЕСТ МОД — не отправляем данные на сервер
             if (testMode) {
                 tg.MainButton.setText("🎥 TEST WIN (НЕ СОХРАНЕНО)").show();
                 setTimeout(() => tg.MainButton.hide(), 2000);
@@ -272,20 +270,17 @@
             }
 
             const cleanUserId = userId.toString().replace("Id:", "").trim();
-
             try {
                 const response = await fetch(`${API}/update_balance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: cleanUserId, balance: balance })
                 });
-
                 if (response.ok) {
                     tg.MainButton.setText("⭐ БАЛАНС СОХРАНЕН").show();
                     setTimeout(() => tg.MainButton.hide(), 1500);
                 }
             } catch (e) { console.error("Network error"); }
-            
             setTimeout(sync, 1000);
         }
 
