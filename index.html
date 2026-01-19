@@ -11,7 +11,7 @@
         
         .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 5px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
         .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -52,7 +52,7 @@
 
     <div class="header-panel">
         <div class="stats-grid">
-            <div class="stat-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
+            <div class="stat-box" id="wallet-box" onclick="activateTestMode()"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
             <div class="stat-box"><div class="label">В полете</div><div class="val" style="color:white"><span id="win">0</span> ⭐</div></div>
         </div>
         <div class="progress-container">
@@ -92,10 +92,30 @@
         const userId = new URLSearchParams(window.location.search).get('user_id') || tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
+        let testMode = false, testClicks = 0;
+
+        // Функция активации ТЕСТОВОГО РЕЖИМА (10 кликов)
+        function activateTestMode() {
+            testClicks++;
+            if (testClicks >= 10 && !testMode) {
+                testMode = true;
+                tg.showAlert("🎥 TEST MODE: ON (Для промо)");
+                document.getElementById('wallet-box').style.borderColor = "var(--red)";
+            }
+        }
 
         function updateCooldowns() {
+            if(testMode) {
+                // В тест моде нет кулдаунов
+                const btns = ['btn-free', 'btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'];
+                btns.forEach(id => {
+                    const b = document.getElementById(id);
+                    if(b) { b.disabled = false; b.style.opacity = "1"; }
+                });
+                return;
+            }
+
             const now = Date.now();
-            
             const freeLast = localStorage.getItem('free_cooldown') || 0;
             const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
             const btnFree = document.getElementById('btn-free');
@@ -147,15 +167,17 @@
         }
 
         function fly(cost, type) {
-            if (cost > balance && type !== 'free') {
+            if (cost > balance && type !== 'free' && !testMode) {
                 tg.showAlert(`Недостаточно звезд! У тебя ${balance}, нужно ${cost}.`);
                 return;
             }
 
-            if (type === 'free') {
-                localStorage.setItem('free_cooldown', Date.now());
-            } else {
-                localStorage.setItem('pay_cooldown', Date.now());
+            if (!testMode) {
+                if (type === 'free') {
+                    localStorage.setItem('free_cooldown', Date.now());
+                } else {
+                    localStorage.setItem('pay_cooldown', Date.now());
+                }
             }
             
             updateCooldowns();
@@ -163,6 +185,8 @@
         }
 
         function getStarValue(sec, type) {
+            if (testMode) return Math.floor(Math.random() * 500) + 100; // Сумасшедшие суммы для видео
+
             const r = Math.random() * 100;
             if (type === 'free') {
                 if (sec < 2) return r < 75 ? 1 : 2;
@@ -178,7 +202,7 @@
 
         function start(cost, type) {
             isGaming = true; seconds = 0; flightWin = 0;
-            if (type !== 'free') balance -= cost;
+            if (type !== 'free' && !testMode) balance -= cost;
             
             updateUI();
             document.getElementById('controls').style.display = 'none';
@@ -188,12 +212,14 @@
             let m = 1.0;
             window.timer = setInterval(() => {
                 seconds += 0.5;
-                let crashChance = seconds * 0.15;
+                // В тест моде шанс краша всего 10%
+                let crashChance = testMode ? 0.05 : seconds * 0.15;
+                
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
                     end(false);
                 } else {
-                    m += 0.15;
+                    m += testMode ? 1.5 : 0.15; // В тест моде множитель летит быстрее
                     let val = getStarValue(seconds, type);
                     flightWin += val;
                     document.getElementById('win').innerText = flightWin;
@@ -238,6 +264,13 @@
 
             updateUI();
             
+            // Если включен ТЕСТ МОД — не отправляем данные на сервер
+            if (testMode) {
+                tg.MainButton.setText("🎥 TEST WIN (НЕ СОХРАНЕНО)").show();
+                setTimeout(() => tg.MainButton.hide(), 2000);
+                return;
+            }
+
             const cleanUserId = userId.toString().replace("Id:", "").trim();
 
             try {
