@@ -9,6 +9,7 @@
         :root { --yellow: #fcd34d; --blue: #3b82f6; --sky: #0ea5e9; --red: #f43f5e; --dark: #020617; --card: #1e293b; }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; padding-bottom: 80px; overflow-x: hidden; touch-action: manipulation; user-select: none; }
         
+        /* Header & Progress */
         .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 8px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
@@ -19,14 +20,16 @@
         #progress-bar { background: var(--blue); width: 0%; height: 100%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--blue); }
         .progress-text { font-size: 9px; color: white; position: absolute; width: 100%; top: 0; left: 0; line-height: 12px; font-weight: bold; }
 
+        /* Scene & Bird */
         #scene { position: relative; width: 100%; height: 260px; background: linear-gradient(180deg, #0ea5e9 0%, #38bdf8 100%); border-radius: 24px; overflow: hidden; margin-bottom: 10px; border: 4px solid #1e293b; box-shadow: inset 0 0 50px rgba(0,0,0,0.2); }
-        #bird-wrap { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); z-index: 10; transition: top 0.6s cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+        #bird-wrap { position: absolute; left: 40px; top: 50%; transform: translateY(-50%); z-index: 10; transition: top 0.8s cubic-bezier(0.45, 0.05, 0.55, 0.95); }
         #bird { font-size: 55px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3)); display: inline-block; animation: wing 0.4s infinite alternate; }
         @keyframes wing { from { transform: scaleX(-1) rotate(-8deg); } to { transform: scaleX(-1) rotate(8deg); } }
         
         #multiplier { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 20px; font-weight: bold; color: var(--yellow); border: 1px solid var(--yellow); display: none; z-index: 20; }
         #gain-float { position: absolute; right: 20px; top: 20px; color: var(--yellow); font-weight: bold; font-size: 20px; display: none; z-index: 25; }
 
+        /* Controls */
         .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
         .btn { padding: 12px; border: none; border-radius: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.1s; border-bottom: 5px solid rgba(0,0,0,0.3); font-size: 11px; text-transform: uppercase; }
         .btn:active:not(:disabled) { transform: translateY(3px); border-bottom: none; }
@@ -39,28 +42,25 @@
         #takeBtn { background: var(--yellow); color: var(--dark); grid-column: span 2; display: none; font-size: 22px; padding: 18px; animation: pulse 1.5s infinite; border-bottom: 6px solid #d97706; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
+        /* History */
         .history-panel { margin-top: 15px; background: var(--card); border-radius: 18px; padding: 12px; border: 1px solid #334155; }
         .history-list { display: flex; flex-direction: column-reverse; gap: 6px; max-height: 100px; overflow-y: auto; margin-top: 8px; }
         .hist-item { display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; font-size: 12px; }
         .hist-win { color: #10b981; font-weight: bold; }
         .hist-crash { color: #f43f5e; font-weight: bold; }
 
+        /* Navigation */
         .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #0f172a; display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 0; border-top: 1px solid #334155; z-index: 100; }
         .nav-item { background: none; border: none; color: #94a3b8; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .nav-item.active { color: var(--sky); }
         .nav-icon { font-size: 20px; }
 
         .cloud { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: move linear infinite; filter: blur(1px); }
-        .star-fx { position: absolute; font-size: 24px; animation: collect 0.6s ease-out forwards; z-index: 5; }
-        @keyframes collect { 0% { opacity: 1; transform: scale(1.5); } 100% { opacity: 0; transform: translate(-150px, -50px) scale(0.5); } }
         .boom { font-size: 80px; position: absolute; z-index: 100; animation: boom-anim 0.5s ease-out forwards; }
         @keyframes boom-anim { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
     </style>
 </head>
 <body>
-
-    <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
-    <audio id="snd_crash" src="https://www.soundjay.com/misc/sounds/explosion-01.mp3"></audio>
 
     <div class="header-panel">
         <div class="stats-grid">
@@ -95,20 +95,24 @@
 
     <nav class="nav-bar">
         <button class="nav-item active"><span class="nav-icon">🎮</span>Игра</button>
-        <button class="nav-item" onclick="tg.showAlert('Магазин скоро откроется!')"><span class="nav-icon">🛒</span>Магазин</button>
+        <button class="nav-item" onclick="tg.showAlert('Магазин в разработке')"><span class="nav-icon">🛒</span>Магазин</button>
         <button class="nav-item" onclick="showFriends()"><span class="nav-icon">👥</span>Друзья</button>
-        <button class="nav-item" onclick="tg.showAlert('Лига в разработке')"><span class="nav-icon">🏆</span>Лига</button>
+        <button class="nav-item" onclick="tg.showAlert('Лига скоро!')"><span class="nav-icon">🏆</span>Лига</button>
     </nav>
+
+    <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
+    <audio id="snd_crash" src="https://www.soundjay.com/misc/sounds/explosion-01.mp3"></audio>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+
         const API = "https://humanity-built-follow-hamilton.trycloudflare.com"; 
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
         let balance = 0, flightWin = 0, isGaming = false, seconds = 0;
-        let alreadyTaken = false, currentMult = 1.0;
-        let crashAfterTake = 0;
+        let currentMult = 1.0;
+        let alreadyTaken = false;
 
         function updateCooldowns() {
             const now = Date.now();
@@ -128,27 +132,9 @@
             const payLeft = 30000 - (now - payLast);
             ['btn-spin', 'btn-turbo', 'btn-energy'].forEach(id => {
                 const b = document.getElementById(id);
-                if (payLeft > 0) { 
-                    b.disabled = true; 
-                    b.innerText = `😴 ОТДЫХ ${Math.ceil(payLeft/1000)}с`;
-                } else { 
-                    b.disabled = false; 
-                    if(id === 'btn-spin') b.innerText = '🎰 СПИН (50 ⭐)';
-                    if(id === 'btn-turbo') b.innerText = '🔥 ТУРБО (300 ⭐)';
-                    if(id === 'btn-energy') b.innerText = '⚡ ЭНЕРГИЯ (25 ⭐)';
-                }
+                if (payLeft > 0) { b.disabled = true; b.style.opacity = "0.5"; }
+                else { b.disabled = false; b.style.opacity = "1"; }
             });
-        }
-
-        function spawnStar() {
-            const s = document.createElement('div');
-            s.className = 'star-fx'; s.innerText = '⭐';
-            s.style.top = document.getElementById('bird-wrap').style.top;
-            s.style.right = '40px';
-            document.getElementById('scene').appendChild(s);
-            document.getElementById('snd_pop').currentTime = 0;
-            document.getElementById('snd_pop').play();
-            setTimeout(() => s.remove(), 600);
         }
 
         function addHistory(winAmount, mult) {
@@ -160,54 +146,71 @@
                               <span class="${statusClass}">${winAmount > 0 ? '+'+winAmount+'⭐' : 'КРАШ'}</span>
                               <span>x${mult.toFixed(2)}</span>`;
             list.prepend(item);
+            
+            // Сохраняем в память
+            let historyData = JSON.parse(localStorage.getItem('bird_history') || '[]');
+            historyData.push({win: winAmount, m: mult, time: new Date().toLocaleTimeString()});
+            if(historyData.length > 10) historyData.shift();
+            localStorage.setItem('bird_history', JSON.stringify(historyData));
+        }
+
+        function loadHistory() {
+            const historyData = JSON.parse(localStorage.getItem('bird_history') || '[]');
+            historyData.reverse().forEach(h => {
+                const list = document.getElementById('hist-list');
+                const item = document.createElement('div');
+                item.className = 'hist-item';
+                const statusClass = h.win > 0 ? 'hist-win' : 'hist-crash';
+                item.innerHTML = `<span>${h.time}</span><span class="${statusClass}">${h.win > 0 ? '+'+h.win+'⭐' : 'КРАШ'}</span><span>x${h.m.toFixed(2)}</span>`;
+                list.appendChild(item);
+            });
         }
 
         function fly(cost, type) {
             if (cost > balance && type !== 'free') {
-                tg.showAlert(`Недостаточно звезд! У тебя ${balance}`); return;
+                tg.showAlert("Недостаточно звезд!"); return;
             }
             if (type === 'free') localStorage.setItem('free_cooldown', Date.now());
             else localStorage.setItem('pay_cooldown', Date.now());
-            
             updateCooldowns();
             start(cost, type);
         }
 
         function start(cost, type) {
-            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false; crashAfterTake = 0;
+            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false;
             if (type !== 'free') balance -= cost;
             updateUI();
             
             document.getElementById('controls').style.display = 'none';
             document.getElementById('takeBtn').style.display = 'block';
             document.getElementById('takeBtn').innerText = "💰 ЗАБРАТЬ ⭐";
-            document.getElementById('takeBtn').style.opacity = "1";
             document.getElementById('multiplier').style.display = 'block';
+
+            let crashPoint = 2 + Math.random() * 8; // Рандомная точка краша
 
             window.timer = setInterval(() => {
                 seconds += 0.5;
+                let crashChance = seconds * 0.13;
                 
-                // Если уже нажали "Забрать", считаем время до искусственного краша
+                // Если зажали "Забрать", птица летит еще немного и падает
                 if (alreadyTaken) {
-                    crashAfterTake += 0.5;
-                    currentMult += 0.2;
+                    currentMult += 0.2; // Кеф растет быстрее визуально
                     document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
-                    if (crashAfterTake >= (4 + Math.random() * 4)) {
+                    
+                    if (seconds > crashPoint) {
                         clearInterval(window.timer);
-                        end();
+                        end(false);
                     }
                     return;
                 }
 
-                let crashChance = seconds * 0.14;
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
-                    end();
+                    end(false);
                 } else {
                     currentMult += 0.15;
                     let base = (type === 'free' ? 5 : (type === 'energy' ? 10 : cost/2));
-                    let val = Math.floor(base * 0.2); 
                     flightWin = Math.floor(base * currentMult);
                     
                     document.getElementById('win').innerText = flightWin;
@@ -215,10 +218,10 @@
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
                     
                     const gf = document.getElementById('gain-float');
-                    gf.innerText = `+${val}`; gf.style.display = 'block';
+                    gf.innerText = `+${Math.floor(base * 0.15)}`; gf.style.display = 'block';
                     setTimeout(() => gf.style.display = 'none', 400);
                     
-                    spawnStar();
+                    document.getElementById('snd_pop').play();
                     tg.HapticFeedback.impactOccurred('light');
                 }
             }, 500);
@@ -230,22 +233,28 @@
             balance += flightWin;
             updateUI();
             tg.HapticFeedback.notificationOccurred('success');
-            document.getElementById('takeBtn').style.opacity = "0.7";
-            document.getElementById('takeBtn').innerText = "🐦 ПТИЧКА ЛЕТИТ...";
+            document.getElementById('takeBtn').innerText = "ОЖИДАНИЕ КРАША...";
+            document.getElementById('takeBtn').style.opacity = "0.5";
+            
+            // Задаем время краша после забора (от 3 до 6 сек)
+            seconds = 0; 
+            crashPoint = 3 + Math.random() * 3; 
         }
 
-        async function end() {
+        async function end(isManual) {
             isGaming = false;
             const finalWin = alreadyTaken ? flightWin : 0;
             addHistory(finalWin, currentMult);
 
-            const b = document.createElement('div');
-            b.className = 'boom'; b.innerText = '💥';
-            b.style.left = '40px'; b.style.top = document.getElementById('bird-wrap').style.top;
-            document.getElementById('scene').appendChild(b);
-            document.getElementById('snd_crash').play();
-            if (!alreadyTaken) tg.HapticFeedback.notificationOccurred('error');
-            setTimeout(() => b.remove(), 500);
+            if (!alreadyTaken) {
+                const b = document.createElement('div');
+                b.className = 'boom'; b.innerText = '💥';
+                b.style.left = '40px'; b.style.top = document.getElementById('bird-wrap').style.top;
+                document.getElementById('scene').appendChild(b);
+                document.getElementById('snd_crash').play();
+                tg.HapticFeedback.notificationOccurred('error');
+                setTimeout(() => b.remove(), 500);
+            }
 
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('takeBtn').style.display = 'none';
@@ -274,7 +283,7 @@
         }
 
         function showFriends() {
-            tg.showAlert(`Твой ID: ${userId}\nДрузья сохраняются в базе данных.`);
+            tg.showAlert(`Твой ID для приглашения: ${userId}\nПриглашай друзей и получай бонусы!`);
         }
 
         function createClouds() {
@@ -291,8 +300,9 @@
         document.head.appendChild(style);
 
         createClouds();
+        loadHistory();
         setInterval(updateCooldowns, 1000);
-        fetch(`${API}/get_user?user_id=${userId}`).then(r => r.json()).then(d => { balance = parseInt(d.balance) || 0; updateUI(); });
+        fetch(`${API}/get_user?user_id=${userId}`).then(r => r.json()).then(d => { balance = d.balance || 0; updateUI(); });
     </script>
 </body>
 </html>
