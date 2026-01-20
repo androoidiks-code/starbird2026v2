@@ -6,7 +6,7 @@
     <title>Star Bird: Lucky Spin 2026</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --yellow: #fcd34d; --blue: #3b82f6; --sky: #0ea5e9; --red: #f43f5e; --dark: #020617; --card: #1e293b; }
+        :root { --yellow: #fcd34d; --blue: #3b82f6; --sky: #0ea5e9; --red: #f43f5e; --dark: #020617; --card: #1e293b; --bronze: #cd7f32; --silver: #c0c0c0; --gold: #ffd700; }
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; padding-bottom: 90px; overflow-x: hidden; touch-action: manipulation; user-select: none; }
         
         .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 8px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
@@ -14,6 +14,13 @@
         .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
         .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- СТИЛИ ЛИГИ --- */
+        .league-badge { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 10px; }
+        .league-icon { font-size: 16px; }
+        .league-bronze { color: var(--bronze); }
+        .league-silver { color: var(--silver); }
+        .league-gold { color: var(--gold); }
 
         .progress-container { background: #1e293b; border-radius: 10px; height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #334155; position: relative; }
         #progress-bar { background: var(--blue); width: 0%; height: 100%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--blue); }
@@ -71,11 +78,16 @@
         .boom { font-size: 100px; position: absolute; z-index: 100; animation: boom-anim 0.6s ease-out forwards; }
         @keyframes boom-anim { 0% { transform: scale(0) rotate(0); opacity: 1; } 50% { transform: scale(1.5) rotate(20deg); opacity: 1; } 100% { transform: scale(2.5) rotate(-20deg); opacity: 0; } }
 
-        /* --- НОВЫЕ СТИЛИ ДЛЯ ДРУЗЕЙ --- */
-        #friends-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: #1e293b; border: 2px solid #0ea5e9; border-radius: 24px; z-index: 1000; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+        /* --- МОДАЛКИ --- */
+        #friends-modal, #giveaway-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: #1e293b; border: 2px solid #0ea5e9; border-radius: 24px; z-index: 1000; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+        #giveaway-modal { border-color: #fcd34d; background: linear-gradient(145deg, #1e293b, #0f172a); }
         #friends-list-content { max-height: 250px; overflow-y: auto; margin-top: 15px; text-align: left; }
-        .friend-item { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 8px; font-size: 14px; color: #fcd34d; border-left: 3px solid #0ea5e9; }
+        .friend-item, .task-item { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 8px; font-size: 14px; color: #fcd34d; border-left: 3px solid #0ea5e9; }
+        .task-item { border-left-color: #fcd34d; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .btn-close-modal { margin-top: 20px; background: #f43f5e; padding: 12px; border-radius: 15px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-ticket { background: #fcd34d; color: #020617; width: 100%; padding: 15px; border-radius: 16px; border: none; font-weight: 900; margin-top: 10px; cursor: pointer; }
+        .btn-ticket:disabled { opacity: 0.3; cursor: not-allowed; }
+        #ticket-info { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; padding: 10px; border-radius: 12px; margin-bottom: 15px; display: none; }
     </style>
 </head>
 <body>
@@ -85,6 +97,12 @@
             <div class="stat-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
             <div class="stat-box"><div class="label">В полете</div><div class="val" style="color:white"><span id="win">0</span> ⭐</div></div>
         </div>
+        
+        <div id="league-container" class="league-badge">
+            <span class="league-icon" id="league-icon">🥉</span>
+            <span id="league-name" class="league-bronze">Бронзовая лига</span>
+        </div>
+
         <div class="progress-container">
             <div id="progress-bar"></div>
             <div class="progress-text">ДО ВЫВОДА: <span id="prog-val">0</span> / 1000 ⭐</div>
@@ -112,10 +130,10 @@
     </div>
 
     <nav class="nav-bar">
-        <button class="nav-item active"><span class="nav-icon">🎮</span>Игра</button>
+        <button class="nav-item active" onclick="location.reload()"><span class="nav-icon">🎮</span>Игра</button>
         <button class="nav-item" onclick="tg.showAlert('Магазин (Скоро)')"><span class="nav-icon">🛒</span>Магазин</button>
         <button class="nav-item" onclick="showFriends()"><span class="nav-icon">👥</span>Друзья</button>
-        <button class="nav-item" onclick="tg.showAlert('Лига (Скоро)')"><span class="nav-icon">🏆</span>Лига</button>
+        <button class="nav-item" onclick="showGiveaway()"><span class="nav-icon">🏆</span>Розыгрыш</button>
     </nav>
 
     <div id="friends-modal">
@@ -123,6 +141,28 @@
         <p style="font-size: 10px; color: #94a3b8; margin: 5px 0;">За каждых 2 друзей +150 ⭐</p>
         <div id="friends-list-content"></div>
         <button class="btn-close-modal" onclick="document.getElementById('friends-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="giveaway-modal">
+        <h2 style="margin:0; color:#fcd34d; font-size: 18px;">🏆 РОЗЫГРЫШ 2026</h2>
+        <p style="font-size: 11px; color: #94a3b8; margin: 5px 0 15px;">Выполни задания и получи билет участника!</p>
+        
+        <div id="ticket-info">
+            <small style="color:#10b981; display:block">ВАШ БИЛЕТ:</small>
+            <strong id="my-ticket" style="font-size: 20px; letter-spacing: 2px;">#---</strong>
+        </div>
+
+        <div class="task-item" onclick="window.open('https://t.me/luckyspin2026', '_blank')">
+            <span>📢 Подписаться на канал</span>
+            <span id="task-sub">❌</span>
+        </div>
+        <div class="task-item" onclick="showFriends()">
+            <span>👥 Пригласить 5 друзей</span>
+            <span id="task-ref">❌</span>
+        </div>
+
+        <button id="btn-get-ticket" class="btn-ticket" onclick="claimTicket()" disabled>ПОЛУЧИТЬ БИЛЕТ</button>
+        <button class="btn-close-modal" style="background:none; color:#94a3b8" onclick="document.getElementById('giveaway-modal').style.display='none'">ЗАКРЫТЬ</button>
     </div>
 
     <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
@@ -312,14 +352,32 @@
             } catch (e) {}
         }
 
+        /* --- ОБНОВЛЕННАЯ ФУНКЦИЯ ИНТЕРФЕЙСА (С ЛИГАМИ) --- */
         function updateUI() {
             document.getElementById('bal').innerText = balance;
             let prog = Math.min(100, (balance / 1000) * 100);
             document.getElementById('progress-bar').style.width = prog + '%';
             document.getElementById('prog-val').innerText = balance;
+
+            // Логика лиг
+            const lIcon = document.getElementById('league-icon');
+            const lName = document.getElementById('league-name');
+
+            if (balance >= 5000) {
+                lIcon.innerText = "🥇";
+                lName.innerText = "Золотая лига";
+                lName.className = "league-gold";
+            } else if (balance >= 1500) {
+                lIcon.innerText = "🥈";
+                lName.innerText = "Серебряная лига";
+                lName.className = "league-silver";
+            } else {
+                lIcon.innerText = "🥉";
+                lName.innerText = "Бронзовая лига";
+                lName.className = "league-bronze";
+            }
         }
 
-        /* --- ОБНОВЛЕННАЯ ФУНКЦИЯ ДРУЗЕЙ --- */
         async function showFriends() {
             const modal = document.getElementById('friends-modal');
             const list = document.getElementById('friends-list-content');
@@ -342,13 +400,56 @@
                         list.appendChild(div);
                     });
                 }
-                // На всякий случай обновляем баланс (если упал бонус за друга)
                 if(data.balance !== undefined) {
                     balance = data.balance;
                     updateUI();
                 }
             } catch (e) {
                 list.innerHTML = "<p style='color:red;'>Ошибка загрузки</p>";
+            }
+        }
+
+        async function showGiveaway() {
+            document.getElementById('giveaway-modal').style.display = 'block';
+            try {
+                const r = await fetch(`${API}/get_user?user_id=${userId}`);
+                const data = await r.json();
+                
+                const refsCount = data.friend_list ? data.friend_list.length : 0;
+                const hasTicket = data.ticket || null;
+
+                document.getElementById('task-ref').innerText = refsCount >= 5 ? "✅" : "❌";
+                document.getElementById('task-sub').innerText = "✅"; 
+
+                if (refsCount >= 5) {
+                    document.getElementById('btn-get-ticket').disabled = false;
+                }
+
+                if (hasTicket) {
+                    document.getElementById('ticket-info').style.display = 'block';
+                    document.getElementById('my-ticket').innerText = hasTicket;
+                    document.getElementById('btn-get-ticket').style.display = 'none';
+                }
+            } catch(e) {}
+        }
+
+        async function claimTicket() {
+            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const r = await fetch(`${API}/claim_ticket`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const d = await r.json();
+                if (d.status === 'ok') {
+                    tg.showAlert(`Поздравляем! Ваш билет: ${d.ticket}`);
+                    showGiveaway();
+                } else {
+                    tg.showAlert(d.message || "Ошибка получения");
+                }
+            } catch(e) {
+                tg.showAlert("Сервер розыгрыша временно недоступен");
             }
         }
 
