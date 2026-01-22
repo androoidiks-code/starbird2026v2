@@ -168,14 +168,14 @@
 
     <div id="friends-modal" class="modal">
         <h2 style="margin:0; color:white; font-size: 18px;">👥 ВАШИ ДРУЗЬЯ</h2>
-        <p style="font-size: 10px; color: #94a3b8; margin: 5px 0;">За каждых 2 друзей +150 ⭐</p>
+        <p style="font-size: 10px; color: #94a3b8; margin: 5px 0;">2 друга = +150 ⭐, далее по +10 ⭐ за каждого!</p>
         <div id="friends-list-content"></div>
         <button class="btn-close-modal" onclick="document.getElementById('friends-modal').style.display='none'">ЗАКРЫТЬ</button>
     </div>
 
     <div id="giveaway-modal" class="modal">
         <h2 style="margin:0; color:#fcd34d; font-size: 18px;">🏆 РОЗЫГРЫШ 2026</h2>
-        <p style="font-size: 11px; color: #94a3b8; margin: 5px 0 15px;">Выполни задания и получи билет участника!</p>
+        <p style="font-size: 11px; color: #94a3b8; margin: 5px 0 15px;">Выполни задания и купи билет участника за 100 ⭐!</p>
         <div id="ticket-info">
             <small style="color:#10b981; display:block">ВАШ БИЛЕТ:</small>
             <strong id="my-ticket" style="font-size: 20px; letter-spacing: 2px;">#---</strong>
@@ -185,10 +185,10 @@
             <span id="task-sub">❌</span>
         </div>
         <div class="task-item" onclick="showFriends()">
-            <span>👥 Пригласить 5 друзей</span>
+            <span>👥 Пригласить 10 друзей</span>
             <span id="task-ref">❌</span>
         </div>
-        <button id="btn-get-ticket" class="btn-ticket" onclick="claimTicket()" disabled>ПОЛУЧИТЬ БИЛЕТ</button>
+        <button id="btn-get-ticket" class="btn-ticket" onclick="claimTicket()" disabled>КУПИТЬ БИЛЕТ (100 ⭐)</button>
         <button class="btn-close-modal" style="background:none; color:#94a3b8" onclick="document.getElementById('giveaway-modal').style.display='none'">ЗАКРЫТЬ</button>
     </div>
 
@@ -455,11 +455,14 @@
                 const refsCount = data.friend_list ? data.friend_list.length : 0;
                 const hasTicket = data.ticket || null;
 
-                document.getElementById('task-ref').innerText = refsCount >= 5 ? "✅" : "❌";
+                document.getElementById('task-ref').innerText = refsCount >= 10 ? "✅" : `(${refsCount}/10)`;
                 document.getElementById('task-sub').innerText = "✅"; 
 
-                if (refsCount >= 5) {
+                // Билет доступен если 10 друзей и баланс >= 100
+                if (refsCount >= 10 && balance >= 100) {
                     document.getElementById('btn-get-ticket').disabled = false;
+                } else {
+                    document.getElementById('btn-get-ticket').disabled = true;
                 }
 
                 if (hasTicket) {
@@ -481,6 +484,9 @@
                 const d = await r.json();
                 if (d.status === 'ok') {
                     tg.showAlert(`Поздравляем! Ваш билет: ${d.ticket}`);
+                    // Обновляем баланс локально после покупки
+                    balance -= 100;
+                    updateUI();
                     showGiveaway();
                 } else {
                     tg.showAlert(d.message || "Ошибка получения");
