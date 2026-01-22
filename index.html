@@ -217,7 +217,7 @@
             }
 
             const payLast = localStorage.getItem('pay_cooldown') || 0;
-            const payLeft = 30000 - (now - payLast);
+            const payLeft = 20000 - (now - payLast);
             ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'].forEach(id => {
                 const b = document.getElementById(id);
                 if (payLeft > 0) {
@@ -257,7 +257,10 @@
         }
 
         function start(cost, type) {
-            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false; crashPoint = 0;
+            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false; 
+            // Фиксируем долет (6-12 сек) заранее
+            crashPoint = 6 + Math.random() * 6; 
+            
             if (type !== 'free') balance -= cost;
             updateUI();
             
@@ -269,16 +272,15 @@
             document.getElementById('multiplier').style.display = 'block';
             document.getElementById('scene').style.filter = "brightness(1.1)";
 
+            // --- НАЧАЛО ОБНОВЛЕННОГО БЛОКА ---
             window.timer = setInterval(() => {
                 seconds += 0.5;
                 
-                // ЛОГИКА ПОСЛЕ НАЖАТИЯ "ЗАБРАТЬ"
+                // 1. ФАЗА ПОСЛЕ ЗАБОРА (Визуальный долет)
                 if (alreadyTaken) {
-                    currentMult += 0.25; // Ускоренный рост икса для азарта
+                    currentMult += 0.35; // Ускоряем икс для азарта
                     document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
-                    document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
-                    spawnStar();
-                    
+                    document.getElementById('bird-wrap').style.top = (20 + Math.random()*40) + '%';
                     if (seconds >= crashPoint) {
                         clearInterval(window.timer);
                         end(false);
@@ -286,8 +288,27 @@
                     return;
                 }
 
-                // ШАНС КРАША ДО НАЖАТИЯ
-                let crashChance = seconds * 0.12;
+                // 2. ФАЗА ИГРЫ (Алгоритм "Стеклянный потолок")
+                let difficulty = 1.0;
+                
+                if (balance >= 900) {
+                    difficulty = 100.0; // СМЕРТЕЛЬНЫЙ УРОВЕНЬ (краш сразу)
+                } else if (balance > 700) {
+                    difficulty = 8.0;   // Почти невозможно лететь долго
+                } else if (balance > 400) {
+                    difficulty = 2.5;   // Плавное торможение
+                } else {
+                    difficulty = 0.6;   // Помощь новичкам (прикормка)
+                }
+
+                // Шанс краша, который растет каждую секунду и множится на сложность
+                let crashChance = (seconds * 0.15) * difficulty;
+
+                // ЖЕСТКИЙ ПРЕДОХРАНИТЕЛЬ (если баланс > 900, шанс краша 100%)
+                if (balance >= 900 || (balance > 850 && currentMult > 1.1)) {
+                    crashChance = 1.0; 
+                }
+
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
                     end(false);
@@ -295,22 +316,15 @@
                     currentMult += 0.15;
                     let base = (type === 'free' ? 5 : (type === 'energy' ? 10 : cost/2));
                     flightWin = Math.floor(base * currentMult);
-                    
                     document.getElementById('win').innerText = flightWin;
                     document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
-                    document.getElementById('bird-wrap').style.top = (20 + Math.random()*55) + '%';
-                    
-                    const gf = document.getElementById('gain-float');
-                    gf.innerText = `+${Math.floor(base * 0.1)}`; gf.style.display = 'block';
-                    setTimeout(() => gf.style.display = 'none', 400);
-                    
-                    spawnStar();
+                    document.getElementById('bird-wrap').style.top = (25 + Math.random()*50) + '%';
                     document.getElementById('snd_pop').play();
-                    tg.HapticFeedback.impactOccurred('light');
                 }
             }, 500);
+            // --- КОНЕЦ ОБНОВЛЕННОГО БЛОКА ---
         }
-
+        
         function take() {
             if (alreadyTaken) return;
             alreadyTaken = true;
