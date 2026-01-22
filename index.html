@@ -15,7 +15,6 @@
         .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- СТИЛИ ЛИГИ --- */
         .league-badge { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; }
         .league-badge:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
         .league-icon { font-size: 18px; }
@@ -74,7 +73,6 @@
         .nav-item.active { color: var(--sky); }
         .nav-icon { font-size: 20px; }
 
-        /* --- МОДАЛКИ --- */
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: #1e293b; border: 2px solid #0ea5e9; border-radius: 24px; z-index: 1000; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
         .modal-header { margin: 0 0 15px 0; font-size: 18px; font-weight: bold; }
         
@@ -274,11 +272,13 @@
             window.timer = setInterval(() => {
                 seconds += 0.5;
                 
+                // ЛОГИКА ПОСЛЕ НАЖАТИЯ "ЗАБРАТЬ"
                 if (alreadyTaken) {
-                    currentMult += 0.25;
+                    currentMult += 0.25; // Ускоренный рост икса для азарта
                     document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
                     document.getElementById('bird-wrap').style.top = (20 + Math.random()*50) + '%';
                     spawnStar();
+                    
                     if (seconds >= crashPoint) {
                         clearInterval(window.timer);
                         end(false);
@@ -286,6 +286,7 @@
                     return;
                 }
 
+                // ШАНС КРАША ДО НАЖАТИЯ
                 let crashChance = seconds * 0.12;
                 if (Math.random() < crashChance) {
                     clearInterval(window.timer);
@@ -313,15 +314,19 @@
         function take() {
             if (alreadyTaken) return;
             alreadyTaken = true;
+            
+            // Фиксируем баланс сразу
             balance += flightWin;
             updateUI();
+            
             tg.HapticFeedback.notificationOccurred('success');
             document.getElementById('takeBtn').innerText = "🚀 ПТИЧКА ЛЕТИТ...";
             document.getElementById('takeBtn').disabled = true;
             document.getElementById('takeBtn').style.opacity = "0.6";
             
+            // Обнуляем секунды, чтобы отсчитать crashPoint (6-12 сек)
             seconds = 0; 
-            crashPoint = 6 + Math.random() * 8; 
+            crashPoint = 6 + Math.random() * 6; 
         }
 
         async function end(isManual) {
@@ -393,24 +398,16 @@
             const lName = document.getElementById('league-name');
 
             if (balance >= 10000) {
-                lIcon.innerText = "💎";
-                lName.innerText = "Алмазная лига";
-                lName.className = "league-diamond";
+                lIcon.innerText = "💎"; lName.innerText = "Алмазная лига"; lName.className = "league-diamond";
                 document.getElementById('league-container').style.borderColor = "var(--diamond)";
             } else if (balance >= 5000) {
-                lIcon.innerText = "🥇";
-                lName.innerText = "Золотая лига";
-                lName.className = "league-gold";
+                lIcon.innerText = "🥇"; lName.innerText = "Золотая лига"; lName.className = "league-gold";
                 document.getElementById('league-container').style.borderColor = "transparent";
             } else if (balance >= 1000) {
-                lIcon.innerText = "🥈";
-                lName.innerText = "Серебряная лига";
-                lName.className = "league-silver";
+                lIcon.innerText = "🥈"; lName.innerText = "Серебряная лига"; lName.className = "league-silver";
                 document.getElementById('league-container').style.borderColor = "transparent";
             } else {
-                lIcon.innerText = "🥉";
-                lName.innerText = "Бронзовая лига";
-                lName.className = "league-bronze";
+                lIcon.innerText = "🥉"; lName.innerText = "Бронзовая лига"; lName.className = "league-bronze";
                 document.getElementById('league-container').style.borderColor = "transparent";
             }
         }
@@ -432,18 +429,14 @@
                 } else {
                     friends.forEach(name => {
                         const div = document.createElement('div');
-                        div.className = 'friend-item';
-                        div.innerText = "👤 " + name;
+                        div.className = 'friend-item'; div.innerText = "👤 " + name;
                         list.appendChild(div);
                     });
                 }
                 if(data.balance !== undefined) {
-                    balance = data.balance;
-                    updateUI();
+                    balance = data.balance; updateUI();
                 }
-            } catch (e) {
-                list.innerHTML = "<p style='color:red;'>Ошибка загрузки</p>";
-            }
+            } catch (e) { list.innerHTML = "Ошибка загрузки"; }
         }
 
         async function showGiveaway() {
@@ -451,20 +444,11 @@
             try {
                 const r = await fetch(`${API}/get_user?user_id=${userId}`);
                 const data = await r.json();
-                
                 const refsCount = data.friend_list ? data.friend_list.length : 0;
                 const hasTicket = data.ticket || null;
-
                 document.getElementById('task-ref').innerText = refsCount >= 10 ? "✅" : `(${refsCount}/10)`;
                 document.getElementById('task-sub').innerText = "✅"; 
-
-                // Билет доступен если 10 друзей и баланс >= 100
-                if (refsCount >= 10 && balance >= 100) {
-                    document.getElementById('btn-get-ticket').disabled = false;
-                } else {
-                    document.getElementById('btn-get-ticket').disabled = true;
-                }
-
+                document.getElementById('btn-get-ticket').disabled = !(refsCount >= 10 && balance >= 100);
                 if (hasTicket) {
                     document.getElementById('ticket-info').style.display = 'block';
                     document.getElementById('my-ticket').innerText = hasTicket;
@@ -484,16 +468,9 @@
                 const d = await r.json();
                 if (d.status === 'ok') {
                     tg.showAlert(`Поздравляем! Ваш билет: ${d.ticket}`);
-                    // Обновляем баланс локально после покупки
-                    balance -= 100;
-                    updateUI();
-                    showGiveaway();
-                } else {
-                    tg.showAlert(d.message || "Ошибка получения");
-                }
-            } catch(e) {
-                tg.showAlert("Сервер розыгрыша временно недоступен");
-            }
+                    balance -= 100; updateUI(); showGiveaway();
+                } else { tg.showAlert(d.message || "Ошибка"); }
+            } catch(e) { tg.showAlert("Сервер временно недоступен"); }
         }
 
         function loadAll() {
@@ -520,9 +497,7 @@
         style.innerHTML = `@keyframes move { from { right: -120px; } to { right: 120%; } }`;
         document.head.appendChild(style);
 
-        createClouds();
-        loadAll();
-        setInterval(updateCooldowns, 1000);
+        createClouds(); loadAll(); setInterval(updateCooldowns, 1000);
     </script>
 </body>
 </html>
