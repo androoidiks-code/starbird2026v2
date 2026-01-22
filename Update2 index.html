@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Star Bird: Lucky Spin 2026</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --yellow: #fcd34d; --blue: #3b82f6; --sky: #0ea5e9; --red: #f43f5e; --dark: #020617; --card: #1e293b; --bronze: #cd7f32; --silver: #c0c0c0; --gold: #ffd700; --diamond: #b9f2ff; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; padding-bottom: 90px; overflow-x: hidden; touch-action: manipulation; user-select: none; }
+        
+        .header-panel { background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 20px; padding: 15px; margin-bottom: 8px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); }
+        .val { font-size: 22px; font-weight: 800; color: var(--yellow); text-shadow: 0 0 10px rgba(252, 211, 77, 0.3); }
+        .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+
+        .league-badge { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-size: 12px; font-weight: bold; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; }
+        .league-badge:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+        .league-icon { font-size: 18px; }
+        .league-bronze { color: var(--bronze); }
+        .league-silver { color: var(--silver); }
+        .league-gold { color: var(--gold); }
+        .league-diamond { color: var(--diamond); text-shadow: 0 0 10px var(--diamond); }
+
+        .progress-container { background: #1e293b; border-radius: 10px; height: 12px; margin: 10px 0; overflow: hidden; border: 1px solid #334155; position: relative; }
+        #progress-bar { background: var(--blue); width: 0%; height: 100%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--blue); }
+        .progress-text { font-size: 9px; color: white; position: absolute; width: 100%; top: 0; left: 0; line-height: 12px; font-weight: bold; }
+
+        #scene { position: relative; width: 100%; height: 260px; background: linear-gradient(180deg, #0ea5e9 0%, #38bdf8 100%); border-radius: 24px; overflow: hidden; margin-bottom: 10px; border: 4px solid #1e293b; box-shadow: inset 0 0 50px rgba(0,0,0,0.2); transition: 0.3s; }
+        #bird-wrap { position: absolute; left: 45px; top: 50%; transform: translateY(-50%); z-index: 10; transition: top 0.8s cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+        #bird { font-size: 55px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5)); display: inline-block; animation: wing 0.4s infinite alternate; }
+        @keyframes wing { from { transform: scaleX(-1) rotate(-12deg); } to { transform: scaleX(-1) rotate(12deg); } }
+        
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        #multiplier { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 20px; font-size: 24px; font-weight: bold; color: var(--yellow); border: 2px solid var(--yellow); box-shadow: 0 0 20px rgba(252, 211, 77, 0.4); display: none; z-index: 20; }
+        #gain-float { position: absolute; right: 20px; top: 20px; color: var(--yellow); font-weight: bold; font-size: 20px; display: none; z-index: 25; text-shadow: 0 0 10px black; }
+
+        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
+        .btn { padding: 12px; border: none; border-radius: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.1s; border-bottom: 5px solid rgba(0,0,0,0.3); font-size: 11px; text-transform: uppercase; }
+        .btn:active:not(:disabled) { transform: translateY(3px); border-bottom: none; }
+        .btn:disabled { background: #334155 !important; color: #94a3b8; border-bottom: none; opacity: 0.7; }
+        
+        .btn-free { background: #8b5cf6; grid-column: span 2; font-size: 14px; }
+        .btn-pay { background: #10b981; }
+        .btn-super { background: #6366f1; }
+        .btn-warn { background: #f59e0b; }
+
+        #takeBtn { background: var(--yellow); color: var(--dark); grid-column: span 2; display: none; font-size: 20px; padding: 18px; animation: pulse 1.5s infinite; border-bottom: 6px solid #d97706; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .history-panel { margin-top: 15px; background: var(--card); border-radius: 18px; padding: 12px; border: 1px solid #334155; }
+        .history-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; margin-top: 8px; }
+        .hist-item { display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; font-size: 11px; border-left: 3px solid transparent; }
+        .hist-win { color: #10b981; font-weight: bold; border-left-color: #10b981; }
+        .hist-crash { color: #f43f5e; font-weight: bold; border-left-color: #f43f5e; }
+
+        /* --- СТИЛИ ДЛЯ КЕЙСОВ --- */
+        .section-title { text-align: left; padding: 20px 10px 5px; font-size: 22px; font-weight: 800; }
+        .section-desc { text-align: left; padding: 0 10px 15px; font-size: 12px; color: #94a3b8; line-height: 1.4; }
+        .cases-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 10px 20px; }
+        .case-card { background: #1e293b; border-radius: 16px; padding: 12px 5px; border: 1px solid #334155; position: relative; transition: 0.2s; }
+        .case-card:active { transform: scale(0.95); }
+        .case-img { font-size: 40px; margin-bottom: 8px; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+        .case-name { font-size: 10px; font-weight: bold; color: white; display: block; min-height: 24px; margin-bottom: 8px; }
+        .case-price { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 14px; font-weight: 800; color: var(--yellow); }
+        
+        .special-cases { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 20px; }
+        .special-card { background: linear-gradient(145deg, #2d3748, #1a202c); border-radius: 20px; padding: 15px; border: 1px solid #4a5568; position: relative; overflow: hidden; }
+        .special-badge { position: absolute; top: 10px; right: 10px; background: var(--red); color: white; font-size: 9px; padding: 2px 6px; border-radius: 8px; font-weight: bold; }
+        .special-img { font-size: 50px; margin: 10px 0; display: block; }
+        /* ----------------------- */
+
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #0f172a; display: grid; grid-template-columns: repeat(4, 1fr); padding: 12px 0; border-top: 1px solid #334155; z-index: 100; }
+        .nav-item { background: none; border: none; color: #94a3b8; font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-item.active { color: var(--sky); }
+        .nav-icon { font-size: 20px; }
+
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 320px; background: #1e293b; border: 2px solid #0ea5e9; border-radius: 24px; z-index: 1000; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+        .modal-header { margin: 0 0 15px 0; font-size: 18px; font-weight: bold; }
+        
+        #league-modal { border-color: var(--yellow); }
+        .league-info-card { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 12px; margin-bottom: 10px; text-align: left; border-left: 4px solid #ccc; }
+        .league-info-card h4 { margin: 0; font-size: 14px; display: flex; justify-content: space-between; }
+        .league-info-card p { margin: 5px 0 0; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+        .bonus-txt { color: #10b981; font-weight: bold; }
+
+        #friends-list-content { max-height: 250px; overflow-y: auto; margin-top: 15px; text-align: left; }
+        .friend-item, .task-item { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 8px; font-size: 14px; color: #fcd34d; border-left: 3px solid #0ea5e9; }
+        .task-item { border-left-color: #fcd34d; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .btn-close-modal { margin-top: 20px; background: #f43f5e; padding: 12px; border-radius: 15px; width: 100%; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-ticket { background: #fcd34d; color: #020617; width: 100%; padding: 15px; border-radius: 16px; border: none; font-weight: 900; margin-top: 10px; cursor: pointer; }
+        .btn-ticket:disabled { opacity: 0.3; cursor: not-allowed; }
+        #ticket-info { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; padding: 10px; border-radius: 12px; margin-bottom: 15px; display: none; }
+
+        .star-fx { position: absolute; font-size: 24px; animation: collect 0.6s ease-out forwards; z-index: 5; }
+        @keyframes collect { 0% { opacity: 1; transform: scale(1.5); } 100% { opacity: 0; transform: translate(-180px, -40px) scale(0.5); } }
+        .cloud { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: move linear infinite; filter: blur(2px); }
+        .boom { font-size: 100px; position: absolute; z-index: 100; animation: boom-anim 0.6s ease-out forwards; }
+        @keyframes boom-anim { 0% { transform: scale(0) rotate(0); opacity: 1; } 50% { transform: scale(1.5) rotate(20deg); opacity: 1; } 100% { transform: scale(2.5) rotate(-20deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <div class="stats-grid">
+            <div class="stat-box"><div class="label">Кошелек</div><div class="val"><span id="bal">0</span> ⭐</div></div>
+            <div class="stat-box"><div class="label">В полете</div><div class="val" style="color:white"><span id="win">0</span> ⭐</div></div>
+        </div>
+        
+        <div id="league-container" class="league-badge" onclick="showLeagues()">
+            <span class="league-icon" id="league-icon">🥉</span>
+            <span id="league-name" class="league-bronze">Бронзовая лига</span>
+        </div>
+
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+            <div class="progress-text">ДО ВЫВОДА: <span id="prog-val">0</span> / 1000 ⭐</div>
+        </div>
+    </div>
+
+    <div id="scene">
+        <div id="multiplier">x1.00</div>
+        <div id="gain-float">+0</div>
+        <div id="bird-wrap"><div id="bird">🐦‍⬛</div></div>
+    </div>
+
+    <div class="grid-btns" id="controls">
+        <button id="btn-free" class="btn btn-free" onclick="fly(0, 'free')">🚀 БЕСПЛАТНЫЙ ПОЛЕТ</button>
+        <button id="btn-spin" class="btn btn-pay" onclick="fly(50, 'spin')">🎰 СПИН (50 ⭐)</button>
+        <button id="btn-super" class="btn btn-super" onclick="fly(150, 'super')">💎 СУПЕР (150 ⭐)</button>
+        <button id="btn-turbo" class="btn btn-pay" style="background:#059669" onclick="fly(300, 'turbo')">🔥 ТУРБО (300 ⭐)</button>
+        <button id="btn-energy" class="btn btn-warn" onclick="fly(25, 'energy')">⚡ ЭНЕРГИЯ (25 ⭐)</button>
+    </div>
+
+    <button id="takeBtn" class="btn" onclick="take()">💰 ЗАБРАТЬ ⭐</button>
+
+    <div class="section-title">Особые наборы</div>
+    <div class="section-desc">Внутри могут выпасть уникальные призы, которые увеличат твой баланс в разы!</div>
+    
+    <div class="special-cases">
+        <div class="special-card" onclick="tg.showAlert('Скоро открытие!')">
+            <span class="special-badge">-20%</span>
+            <span class="special-img">🎁</span>
+            <span class="case-name">Набор Deadpool</span>
+            <div class="case-price"><s>250</s> 200 ⭐</div>
+        </div>
+        <div class="special-card" onclick="tg.showAlert('Скоро открытие!')">
+            <span class="special-badge">-20%</span>
+            <span class="special-img">📦</span>
+            <span class="case-name">Набор Героя</span>
+            <div class="case-price"><s>250</s> 200 ⭐</div>
+        </div>
+    </div>
+
+    <div class="section-title">Обычные наборы</div>
+    <div class="section-desc">Внутри могут выпасть Telegram Gifts, подписка Telegram Premium, NFT и звезды</div>
+
+    <div class="cases-grid">
+        <div class="case-card" onclick="tg.showAlert('Скоро в продаже')">
+            <span class="case-img">💜</span>
+            <span class="case-name">Набор с билетами</span>
+            <div class="case-price">5 ⭐</div>
+        </div>
+        <div class="case-card" onclick="tg.showAlert('Скоро в продаже')">
+            <span class="case-img">🤎</span>
+            <span class="case-name">Бронзовый набор</span>
+            <div class="case-price">25 ⭐</div>
+        </div>
+        <div class="case-card" onclick="tg.showAlert('Скоро в продаже')">
+            <span class="case-img">🤍</span>
+            <span class="case-name">Серебряный набор</span>
+            <div class="case-price">50 ⭐</div>
+        </div>
+        <div class="case-card" onclick="tg.showAlert('Скоро в продаже')">
+            <span class="case-img">💛</span>
+            <span class="case-name">Золотой набор</span>
+            <div class="case-price">100 ⭐</div>
+        </div>
+        <div class="case-card" onclick="tg.showAlert('Скоро в продаже')">
+            <span class="case-img">💙</span>
+            <span class="case-name">Супер-набор</span>
+            <div class="case-price">150 ⭐</div>
+        </div>
+    </div>
+
+    <div class="history-panel">
+        <div id="hist-list" class="history-list"></div>
+    </div>
+
+    <nav class="nav-bar">
+        <button class="nav-item active" onclick="location.reload()"><span class="nav-icon">🎮</span>Игра</button>
+        <button class="nav-item" onclick="tg.showAlert('Магазин (Скоро)')"><span class="nav-icon">🛒</span>Наборы</button>
+        <button class="nav-item" onclick="showFriends()"><span class="nav-icon">👥</span>Друзья</button>
+        <button class="nav-item" onclick="showGiveaway()"><span class="nav-icon">🏆</span>Розыгрыш</button>
+    </nav>
+
+    <div id="league-modal" class="modal">
+        <h2 class="modal-header">🏆 СИСТЕМА ЛИГ</h2>
+        <div class="league-info-card" style="border-left-color: var(--bronze)">
+            <h4 class="league-bronze">Бронзовая <span>0-1000 ⭐</span></h4>
+            <p>Начальный уровень. Бонусы отсутствуют.</p>
+        </div>
+        <div class="league-info-card" style="border-left-color: var(--silver)">
+            <h4 class="league-silver">Серебряная <span>1000-5000 ⭐</span></h4>
+            <p>Шанс на <span class="bonus-txt">EPIC WIN 100k</span> увеличен на <span class="bonus-txt">3%</span></p>
+        </div>
+        <div class="league-info-card" style="border-left-color: var(--gold)">
+            <h4 class="league-gold">Золотая <span>5000-10000 ⭐</span></h4>
+            <p>Шанс на Крупный Выигрыш выше на <span class="bonus-txt">25%</span></p>
+        </div>
+        <div class="league-info-card" style="border-left-color: var(--diamond)">
+            <h4 class="league-diamond">Алмазная <span>10000+ ⭐</span></h4>
+            <p>• Бесплатный кейс каждые 12ч<br>• Коэффициенты <span class="bonus-txt">+30%</span><br>• Повышенный Кешбэк</p>
+        </div>
+        <button class="btn-close-modal" onclick="document.getElementById('league-modal').style.display='none'">ПОНЯТНО</button>
+    </div>
+
+    <div id="friends-modal" class="modal">
+        <h2 style="margin:0; color:white; font-size: 18px;">👥 ВАШИ ДРУЗЬЯ</h2>
+        <p style="font-size: 10px; color: #94a3b8; margin: 5px 0;">2 друга = +150 ⭐, далее по +10 ⭐ за каждого!</p>
+        <div id="friends-list-content"></div>
+        <button class="btn-close-modal" onclick="document.getElementById('friends-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="giveaway-modal" class="modal">
+        <h2 style="margin:0; color:#fcd34d; font-size: 18px;">🏆 РОЗЫГРЫШ 2026</h2>
+        <p style="font-size: 11px; color: #94a3b8; margin: 5px 0 15px;">Выполни задания и купи билет участника за 100 ⭐!</p>
+        <div id="ticket-info">
+            <small style="color:#10b981; display:block">ВАШ БИЛЕТ:</small>
+            <strong id="my-ticket" style="font-size: 20px; letter-spacing: 2px;">#---</strong>
+        </div>
+        <div class="task-item" onclick="window.open('https://t.me/luckyspin2026', '_blank')">
+            <span>📢 Подписаться на канал</span>
+            <span id="task-sub">❌</span>
+        </div>
+        <div class="task-item" onclick="showFriends()">
+            <span>👥 Пригласить 10 друзей</span>
+            <span id="task-ref">❌</span>
+        </div>
+        <button id="btn-get-ticket" class="btn-ticket" onclick="claimTicket()" disabled>КУПИТЬ БИЛЕТ (100 ⭐)</button>
+        <button class="btn-close-modal" style="background:none; color:#94a3b8" onclick="document.getElementById('giveaway-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
+
+    <audio id="snd_pop" src="https://www.soundjay.com/buttons/sounds/button-37a.mp3"></audio>
+    <audio id="snd_crash" src="https://www.soundjay.com/misc/sounds/explosion-01.mp3"></audio>
+    <audio id="bg_music" loop src="https://www.soundjay.com/free-music/sounds/iron-man-01.mp3"></audio>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const API = "https://humanity-built-follow-hamilton.trycloudflare.com"; 
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        
+        let balance = 0, flightWin = 0, isGaming = false, seconds = 0, currentMult = 1.0, alreadyTaken = false, crashPoint = 0;
+
+        function updateCooldowns() {
+            const now = Date.now();
+            const freeLast = localStorage.getItem('free_cooldown') || 0;
+            const freeLeft = (8 * 3600 * 1000) - (now - freeLast);
+            const btnFree = document.getElementById('btn-free');
+            if (freeLeft > 0) {
+                btnFree.disabled = true;
+                btnFree.innerText = `⏳ ${new Date(freeLeft).toISOString().substr(11, 5)}`;
+            } else {
+                btnFree.disabled = false;
+                btnFree.innerText = `🚀 БЕСПЛАТНЫЙ ПОЛЕТ`;
+            }
+
+            const payLast = localStorage.getItem('pay_cooldown') || 0;
+            const payLeft = 20000 - (now - payLast);
+            ['btn-spin', 'btn-super', 'btn-turbo', 'btn-energy'].forEach(id => {
+                const b = document.getElementById(id);
+                if (payLeft > 0) {
+                    b.disabled = true;
+                    b.innerText = `😴 ${Math.ceil(payLeft/1000)}s`;
+                } else {
+                    b.disabled = false;
+                    if(id === 'btn-spin') b.innerText = '🎰 СПИН (50 ⭐)';
+                    if(id === 'btn-super') b.innerText = '💎 СУПЕР (150 ⭐)';
+                    if(id === 'btn-turbo') b.innerText = '🔥 ТУРБО (300 ⭐)';
+                    if(id === 'btn-energy') b.innerText = '⚡ ЭНЕРГИЯ (25 ⭐)';
+                }
+            });
+        }
+
+        function spawnStar() {
+            const s = document.createElement('div');
+            s.className = 'star-fx'; s.innerText = '⭐';
+            s.style.top = document.getElementById('bird-wrap').style.top;
+            s.style.right = '40px';
+            document.getElementById('scene').appendChild(s);
+            setTimeout(() => s.remove(), 600);
+        }
+
+        function fly(cost, type) {
+            if (cost > balance && type !== 'free') {
+                tg.showAlert(`Нужно ${cost} ⭐, у тебя ${balance}`); return;
+            }
+            if (type === 'free') localStorage.setItem('free_cooldown', Date.now());
+            else localStorage.setItem('pay_cooldown', Date.now());
+            
+            document.getElementById('bg_music').volume = 0.2;
+            document.getElementById('bg_music').play().catch(()=>{});
+            
+            updateCooldowns();
+            start(cost, type);
+        }
+
+        function start(cost, type) {
+            isGaming = true; seconds = 0; flightWin = 0; currentMult = 1.0; alreadyTaken = false; 
+            crashPoint = 6 + Math.random() * 6; 
+            
+            if (type !== 'free') balance -= cost;
+            updateUI();
+            
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('takeBtn').style.display = 'block';
+            document.getElementById('takeBtn').disabled = false;
+            document.getElementById('takeBtn').style.opacity = "1";
+            document.getElementById('takeBtn').innerText = "💰 ЗАБРАТЬ ⭐";
+            document.getElementById('multiplier').style.display = 'block';
+            document.getElementById('scene').style.filter = "brightness(1.1)";
+
+            window.timer = setInterval(() => {
+                seconds += 0.5;
+                if (alreadyTaken) {
+                    currentMult += 0.35;
+                    document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
+                    document.getElementById('bird-wrap').style.top = (20 + Math.random()*40) + '%';
+                    if (seconds >= crashPoint) {
+                        clearInterval(window.timer);
+                        end(false);
+                    }
+                    return;
+                }
+                let difficulty = 1.0;
+                if (balance >= 900) difficulty = 100.0;
+                else if (balance > 700) difficulty = 8.0;
+                else if (balance > 400) difficulty = 2.5;
+                else difficulty = 0.6;
+                let crashChance = (seconds * 0.15) * difficulty;
+                if (balance >= 900 || (balance > 850 && currentMult > 1.1)) crashChance = 1.0; 
+                if (Math.random() < crashChance) {
+                    clearInterval(window.timer);
+                    end(false);
+                } else {
+                    currentMult += 0.15;
+                    let base = (type === 'free' ? 5 : (type === 'energy' ? 10 : cost/2));
+                    flightWin = Math.floor(base * currentMult);
+                    document.getElementById('win').innerText = flightWin;
+                    document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
+                    document.getElementById('bird-wrap').style.top = (25 + Math.random()*50) + '%';
+                    document.getElementById('snd_pop').play();
+                }
+            }, 500);
+        }
+        
+        function take() {
+            if (alreadyTaken) return;
+            alreadyTaken = true;
+            balance += flightWin;
+            updateUI();
+            tg.HapticFeedback.notificationOccurred('success');
+            document.getElementById('takeBtn').innerText = "🚀 ПТИЧКА ЛЕТИТ...";
+            document.getElementById('takeBtn').disabled = true;
+            document.getElementById('takeBtn').style.opacity = "0.6";
+            seconds = 0; 
+            crashPoint = 6 + Math.random() * 6; 
+        }
+
+        async function end(isManual) {
+            isGaming = false;
+            const finalWin = alreadyTaken ? flightWin : 0;
+            const scene = document.getElementById('scene');
+            scene.style.animation = "shake 0.5s cubic-bezier(.36,.07,.19,.97) both";
+            scene.style.filter = "brightness(0.7)";
+            const b = document.createElement('div');
+            b.className = 'boom'; b.innerText = '💥';
+            b.style.left = '50px'; b.style.top = document.getElementById('bird-wrap').style.top;
+            scene.appendChild(b);
+            const crashSnd = document.getElementById('snd_crash');
+            crashSnd.volume = 1.0;
+            crashSnd.play();
+            tg.HapticFeedback.notificationOccurred('error');
+            setTimeout(() => { b.remove(); scene.style.animation = ""; }, 600);
+            addHistory(finalWin, currentMult);
+            document.getElementById('controls').style.display = 'grid';
+            document.getElementById('takeBtn').style.display = 'none';
+            document.getElementById('multiplier').style.display = 'none';
+            document.getElementById('win').innerText = 0;
+            updateUI();
+            syncBalance();
+        }
+
+        function addHistory(win, m) {
+            const list = document.getElementById('hist-list');
+            const item = document.createElement('div');
+            item.className = `hist-item ${win > 0 ? 'hist-win' : 'hist-crash'}`;
+            item.innerHTML = `<span>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span><span>${win > 0 ? '+'+win+' ⭐' : 'КРАШ'}</span><span>x${m.toFixed(2)}</span>`;
+            list.prepend(item);
+            let h = JSON.parse(localStorage.getItem('bird_history') || '[]');
+            h.push({w:win, m:m, t:new Date().toLocaleTimeString()});
+            if(h.length > 15) h.shift();
+            localStorage.setItem('bird_history', JSON.stringify(h));
+        }
+
+        async function syncBalance() {
+            try {
+                await fetch(`${API}/update_balance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, balance: balance })
+                });
+            } catch (e) {}
+        }
+
+        function showLeagues() {
+            document.getElementById('league-modal').style.display = 'block';
+        }
+
+        function updateUI() {
+            document.getElementById('bal').innerText = balance;
+            let prog = Math.min(100, (balance / 1000) * 100);
+            document.getElementById('progress-bar').style.width = prog + '%';
+            document.getElementById('prog-val').innerText = balance;
+
+            const lIcon = document.getElementById('league-icon');
+            const lName = document.getElementById('league-name');
+
+            if (balance >= 10000) {
+                lIcon.innerText = "💎"; lName.innerText = "Алмазная лига"; lName.className = "league-diamond";
+                document.getElementById('league-container').style.borderColor = "var(--diamond)";
+            } else if (balance >= 5000) {
+                lIcon.innerText = "🥇"; lName.innerText = "Золотая лига"; lName.className = "league-gold";
+                document.getElementById('league-container').style.borderColor = "transparent";
+            } else if (balance >= 1000) {
+                lIcon.innerText = "🥈"; lName.innerText = "Серебряная лига"; lName.className = "league-silver";
+                document.getElementById('league-container').style.borderColor = "transparent";
+            } else {
+                lIcon.innerText = "🥉"; lName.innerText = "Бронзовая лига"; lName.className = "league-bronze";
+                document.getElementById('league-container').style.borderColor = "transparent";
+            }
+        }
+
+        async function showFriends() {
+            const modal = document.getElementById('friends-modal');
+            const list = document.getElementById('friends-list-content');
+            list.innerHTML = "<p style='color:gray; text-align:center;'>Загрузка...</p>";
+            modal.style.display = 'block';
+            try {
+                const r = await fetch(`${API}/get_user?user_id=${userId}`);
+                const data = await r.json();
+                const friends = data.friend_list || [];
+                list.innerHTML = "";
+                if (friends.length === 0) {
+                    list.innerHTML = "<p style='color:gray; text-align:center; font-size:12px;'>У вас пока нет приглашенных друзей.</p>";
+                } else {
+                    friends.forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'friend-item'; div.innerText = "👤 " + name;
+                        list.appendChild(div);
+                    });
+                }
+                if(data.balance !== undefined) { balance = data.balance; updateUI(); }
+            } catch (e) { list.innerHTML = "Ошибка загрузки"; }
+        }
+
+        async function showGiveaway() {
+            document.getElementById('giveaway-modal').style.display = 'block';
+            try {
+                const r = await fetch(`${API}/get_user?user_id=${userId}`);
+                const data = await r.json();
+                const refsCount = data.friend_list ? data.friend_list.length : 0;
+                const hasTicket = data.ticket || null;
+                document.getElementById('task-ref').innerText = refsCount >= 10 ? "✅" : `(${refsCount}/10)`;
+                document.getElementById('task-sub').innerText = "✅"; 
+                document.getElementById('btn-get-ticket').disabled = !(refsCount >= 10 && balance >= 100);
+                if (hasTicket) {
+                    document.getElementById('ticket-info').style.display = 'block';
+                    document.getElementById('my-ticket').innerText = hasTicket;
+                    document.getElementById('btn-get-ticket').style.display = 'none';
+                }
+            } catch(e) {}
+        }
+
+        async function claimTicket() {
+            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const r = await fetch(`${API}/claim_ticket`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const d = await r.json();
+                if (d.status === 'ok') {
+                    tg.showAlert(`Поздравляем! Ваш билет: ${d.ticket}`);
+                    balance -= 100; updateUI(); showGiveaway();
+                } else { tg.showAlert(d.message || "Ошибка"); }
+            } catch(e) { tg.showAlert("Сервер временно недоступен"); }
+        }
+
+        function loadAll() {
+            const h = JSON.parse(localStorage.getItem('bird_history') || '[]');
+            h.reverse().forEach(x => {
+                const item = document.createElement('div');
+                item.className = `hist-item ${x.w > 0 ? 'hist-win' : 'hist-crash'}`;
+                item.innerHTML = `<span>${x.t}</span><span>${x.w > 0 ? '+'+x.w : 'КРАШ'}</span><span>x${x.m.toFixed(2)}</span>`;
+                document.getElementById('hist-list').appendChild(item);
+            });
+            fetch(`${API}/get_user?user_id=${userId}`).then(r => r.json()).then(d => { balance = d.balance || 0; updateUI(); });
+        }
+
+        function createClouds() {
+            for(let i=0; i<8; i++){
+                let c = document.createElement('div');
+                c.className = 'cloud';
+                c.style.cssText = `width:${50+Math.random()*70}px; height:25px; top:${Math.random()*210}px; right:-120px; animation: move ${4+Math.random()*7}s linear infinite;`;
+                document.getElementById('scene').appendChild(c);
+            }
+        }
+
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes move { from { right: -120px; } to { right: 120%; } }`;
+        document.head.appendChild(style);
+
+        createClouds(); loadAll(); setInterval(updateCooldowns, 1000);
+    </script>
+</body>
+</html>
